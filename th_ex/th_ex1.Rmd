@@ -1,0 +1,68 @@
+---
+title: "Take-home Exercise 1"
+description: |
+  In this Take-home Exercise 1, I will explore...
+author:
+  - name: Clarence Tay 
+    url: https://www.linkedin.com/in/clarencetay/
+    affiliation: Singapore Management University - School of Computing and Information Systems
+    affiliation_url: https://scis.smu.edu.sg/
+date: "`r Sys.Date()`"
+output: distill::distill_article
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Overview
+
+In this take-home exercise, blaa blab blac blad blae blaf blag blah blai blaj
+
+# Getting Started
+
+Before we get started, it is important for us to ensure that the required R packages have been installed. If yes, we will load the R packages. If they have yet to be installed, we will install the R packages and load them onto R environment.
+
+The chunk code below will do the trick.
+
+```{r}
+packages = c('tidyverse')
+
+for(p in packages){
+  if(!require(p, character.only = T)){
+    install.packages(p)
+    }
+  library(p, character.only = T)
+  }
+```
+
+
+# Importing Data
+
+The code chunk below imports *Participants.csv* from the data folder, into R by using [`read_csv()`](https://readr.tidyverse.org/reference/read_delim.html) of [**readr**](https://readr.tidyverse.org/) and save it as an tibble dataframe called *participants_data*.
+
+```{r}
+participants_data = read_csv("data/Participants.csv")
+```
+
+# A Simple Bar Chart
+
+The code chunk below plots a bar chart by using geom_bar() of ggplot2.
+
+```{r}
+ggplot(data = participants_data,
+       aes(x=educationLevel)) +
+  geom_bar()
+  
+```
+
+
+
+
+
+
+
+
+
+
+
