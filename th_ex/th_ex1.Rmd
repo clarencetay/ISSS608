@@ -17,7 +17,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Overview
 
-In this take-home exercise, blaa blab blac blad blae blaf blag blah blai blaj
+In this take-home exercise, I will be exploring and revealing the demographic of the city of Engagement, Ohio USA by using appropriate static statistical graphics methods. The data will be processed by using appropriate tidyverse family of packages and the statistical graphics will be done with ggplot2 and its extensions. Datasets used will be taken from the VAST challenge 2022.
 
 # Getting Started
 
@@ -45,22 +45,154 @@ The code chunk below imports *Participants.csv* from the data folder, into R by 
 participants_data = read_csv("data/Participants.csv")
 ```
 
+```{r}
+colnames(participants_data)
+count(participants_data)
+count(participants_data,educationLevel)
+count(participants_data,householdSize)
+count(participants_data,interestGroup)
+min(participants_data$age)
+max(participants_data$age)
+min(participants_data$joviality)
+max(participants_data$joviality)
+```
+
 # A Simple Bar Chart
 
 The code chunk below plots a bar chart by using geom_bar() of ggplot2.
 
 ```{r}
 ggplot(data = participants_data,
-       aes(x=educationLevel)) +
-  geom_bar()
+       aes(x=age, fill= educationLevel)) +
+  geom_histogram(bins=20, color='grey30')
   
+```
+
+```{r}
+ggplot(data = participants_data,
+       aes(x=joviality, fill= educationLevel)) +
+  geom_histogram(bins=20, color='grey30')
+```
+
+```{r}
+ggplot(data = participants_data,
+       aes(x=age, fill= interestGroup)) +
+  geom_histogram(bins=20, color='grey30')
+  
+```
+
+```{r}
+ggplot(data = participants_data,
+       aes(x=joviality, fill= interestGroup)) +
+  geom_histogram(bins=20, color='grey30')
+  
+```
+
+
+```{r}
+ggplot(data = participants_data,
+       aes(x=age, fill= haveKids)) +
+  geom_histogram(bins=20, color='grey30')
+  
+```
+
+```{r}
+ggplot(data = participants_data,
+       aes(x=joviality, fill= haveKids)) +
+  geom_histogram(bins=20, color='grey30')
+```
+
+```{r}
+ggplot(data = participants_data,
+       aes(y=age, x= educationLevel)) +
+  geom_boxplot() +
+  geom_point(stat='summary',
+             fun.y='mean',
+             colour='red',
+             size=4)
+```
+
+```{r}
+ggplot(data = participants_data,
+       aes(y=age, x= haveKids)) +
+  geom_boxplot() +
+  geom_point(stat='summary',
+             fun.y='mean',
+             colour='red',
+             size=4)
+```
+
+
+
+```{r}
+ggplot(data = participants_data,
+       aes(y=age, x= educationLevel)) +
+  geom_violin(fill='light blue') +
+  geom_boxplot(alpha=0.2) +
+  geom_point(stat='summary',
+             fun.y='mean',
+             colour='red',
+             size=4)
+```
+
+```{r}
+ggplot(data = participants_data,
+         aes(x=age, y= joviality)) +
+  geom_point() +
+  geom_smooth(size=0.5)
+```
+
+```{r}
+ggplot(data = participants_data,
+         aes(x=age)) +
+  geom_histogram(bins=20) +
+  facet_grid(~educationLevel)
+```
+
+```{r}
+ggplot(data = participants_data,
+         aes(y=age, x = interestGroup)) +
+  geom_boxplot() +
+  facet_grid(educationLevel~.)
+```
+
+```{r}
+ggplot(data = participants_data,
+         aes(y=joviality, x = interestGroup)) +
+  geom_boxplot() +
+  facet_grid(educationLevel~.)
+```
+
+```{r}
+ggplot(data = participants_data,
+         aes(y=age, x = interestGroup)) +
+  geom_boxplot() +
+  facet_grid(householdSize~.)
+```
+
+```{r}
+ggplot(data = participants_data,
+         aes(y=age, x = haveKids)) +
+  geom_boxplot() +
+  facet_grid(householdSize~educationLevel)
+```
+
+```{r}
+ggplot(data = participants_data,
+         aes(y=age, x = haveKids)) +
+  geom_boxplot() +
+  facet_grid(interestGroup~educationLevel) +
+  coord_flip()
 ```
 
 
 
 
-
-
+```{r}
+ggplot(data = participants_data,
+         aes(x=age, colour = educationLevel)) +
+  geom_density()
+```
 
 
 
