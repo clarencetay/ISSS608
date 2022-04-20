@@ -1,7 +1,7 @@
 ---
 title: "About this site"
 description: |
-  Some additional details about the website
+  This website is a compilation of works that I've done during my SMU MITB (Analytics) journey!
 ---
 
 ```{r setup, include=FALSE}
