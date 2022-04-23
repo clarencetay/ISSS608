@@ -1,7 +1,7 @@
 ---
 title: "Take-home Exercise 1"
 description: |
-  In this Take-home Exercise 1, I will explore...
+  In this Take-home Exercise 1, I will be exploring and revealing the demographic of the city of Engagement, Ohio USA by using appropriate static statistical graphics methods. 
 author:
   - name: Clarence Tay 
     url: https://www.linkedin.com/in/clarencetay/
@@ -12,7 +12,10 @@ output: distill::distill_article
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, 
+                      eval = TRUE, 
+                      warning = FALSE, 
+                      message = FALSE)
 ```
 
 # Overview
@@ -25,7 +28,7 @@ Before we get started, it is important for us to ensure that the required R pack
 
 The chunk code below will do the trick.
 
-```{r}
+```{r echo = FALSE}
 packages = c('tidyverse')
 
 for(p in packages){
