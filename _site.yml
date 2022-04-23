@@ -16,6 +16,12 @@ navbar:
         href: "th_ex/th_ex1.html"
       - text: "Take-home Exercise 2"
         href: ""
+      - text: "Take-home Exercise 3"
+        href: "th_ex/th_ex1.html"
+      - text: "Take-home Exercise 4"
+        href: ""
+      - text: "Take-home Exercise 5"
+        href: ""
     - text: "DataViz Makeover"
       menu:
         - text: "DateViz Makeover 1"
