@@ -4,7 +4,7 @@ description: |
   This website is a compilation of works that I've done for **ISSS608 Visual Analytics and Applications** module in Semseter Jan-Apr 2022 during my SMU MITB (Analytics) journey!
   
   I am Clarence, a full-time Master student at Singapore Management University, undertaking Master of IT in Business (Analytics Track).
-  Feel free to connect with me @ [LinkedIn](https://www.linkedin.com/in/clarencetay/)
+  Feel free to connect with me @ [LinkedIn](https://www.linkedin.com/in/clarencetay/).
 ---
 
 ```{r setup, include=FALSE}
