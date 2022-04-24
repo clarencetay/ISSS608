@@ -7,7 +7,8 @@ author:
     url: https://www.linkedin.com/in/clarencetay/
     affiliation: Singapore Management University - MITB
     affiliation_url: https://scis.smu.edu.sg/master-it-business
-date: "`r Sys.Date()`"
+date: "April 24, 2022"
+#date: "`r Sys.Date()`"
 output: distill::distill_article
 
 ---
@@ -30,7 +31,7 @@ Before I get started, it is important for us to ensure that the required R packa
 The chunk code below will do the trick.
 
 ```{r echo = TRUE}
-packages = c('tidyverse','plotly','psych')
+packages = c('tidyverse','psych','plotly')
 
 for(p in packages){
   if(!require(p, character.only = T)){
@@ -130,7 +131,7 @@ From the output, the observations are,
 
 # Time to plot some exciting charts!!!
 
-## Histograms
+### Histograms
 
 The code chunk below plots a histogram by using [`geom_histogram()`](https://ggplot2.tidyverse.org/reference/geom_histogram.html) of ggplot2.
 
@@ -324,7 +325,7 @@ ggplot(data = participants_data,
              size=4)
 ```
 
-## Scatter Plot
+### Scatter Plot
 
 A scatter plot was charted with participants' age and joviality. It seems like there is no correlation at all between the participants' age and their happiness level.
 
@@ -365,7 +366,7 @@ ggplotly(ggplot(data = test,
   coord_flip())
 ```
 
-## Boxplot
+### Boxplot
 
 Next up, a boxplot was plotted with [`geom_boxplot()`](https://ggplot2.tidyverse.org/reference/geom_boxplot.html) and [`geom_point()`](https://ggplot2.tidyverse.org/reference/geom_point.html), with [`facet_wrap()`](https://ggplot2.tidyverse.org/reference/facet_wrap.html) as below.
 
@@ -459,7 +460,7 @@ Some key observations are,
 
 While it may not be intuitive now, but I believe with deeper analysis, we may be able to connect the dots and uncover some insights.
 
-With that, this is the end of my take-home exercise 1. :)
+With that, this is the end of my take-home exercise 1. =)
 
 ```{r echo=FALSE, eval=FALSE}
 ggplot(data = participants_data,

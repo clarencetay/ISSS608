@@ -7,7 +7,8 @@ author:
     url: https://www.linkedin.com/in/clarencetay/
     affiliation: Singapore Management University - MITB
     affiliation_url: https://scis.smu.edu.sg/master-it-business
-date: "`r Sys.Date()`"
+date: "April 24, 2022"
+#date: "`r Sys.Date()`"
 output: distill::distill_article
 
 ---
@@ -21,7 +22,7 @@ knitr::opts_chunk$set(echo = TRUE,
 
 # Overview
 
-In this take-home exercise, I will be exploring and revealing the demographic of the city of Engagement, Ohio USA by using appropriate static statistical graphics methods. The data will be processed by using appropriate tidyverse family of packages and the statistical graphics will be done with ggplot2 and its extensions. Datasets used will be taken from the VAST challenge 2022.
+In this take-home exercise, I will be exploring and revealing the demographic of the city of Engagement, Ohio USA by using appropriate static statistical graphics methods. The data will be processed by using appropriate [tidyverse](https://www.tidyverse.org/) family of packages and the statistical graphics will be done with [ggplot2](https://ggplot2.tidyverse.org/) and its extensions. Datasets used will be taken from the [VAST Challenge 2022](https://vast-challenge.github.io/2022/).
 
 # Getting Started
 
@@ -30,7 +31,7 @@ Before I get started, it is important for us to ensure that the required R packa
 The chunk code below will do the trick.
 
 ```{r echo = TRUE}
-packages = c('tidyverse','plotly','psych','ggridges','patchwork')
+packages = c('tidyverse','psych','plotly')
 
 for(p in packages){
   if(!require(p, character.only = T)){
@@ -39,7 +40,6 @@ for(p in packages){
   library(p, character.only = T)
   }
 ```
-
 
 # Importing Data
 
@@ -64,38 +64,33 @@ The data in columns *'age'* and *'joviality'* appears to be continuous data type
 
 The data in columns *'haveKids'*, *'educationLevel'* and *'interestGroup'* appears to be categorical data type.
 With the above initial observations, I would be able to see what are the unique values and count in these categorical and discrete data type columns.
-
 <br>
 
 ```{r}
 table(participants_data$householdSize)
 ```
 For *'householdSize'*, there are 3 unique values of 1, 2 and 3. Also, the count of these unique values appears to be quite even split out.
-
 <br>
 
 ```{r}
 table(participants_data$haveKids)
 ```
 For *'haveKids'*, it consists of either True or False (boolean), with around 70% of the participants not having kids.
-
 <br>
 
 ```{r}
 table(participants_data$educationLevel)
 ```
 For *'educationLevel'*, there are 4 unique types, namely Bachelors, Graduate, High School/College and Low. A quick glance tells us that bulk of the participants (~50%) are only having high school/college qualifications. Lowly educated participants are minority in this case.
-
 <br>
 
 ```{r}
 table(participants_data$interestGroup)
 ```
 For *'interestGroup'*, there are 10 unique types, named from A to J (actual interest group names are redacted). A high level glance at the numbers tells us that the number of participants in the various interest groups are quite evenly split too.
-
 <br>
 
-```{r}
+```{r echo=FALSE, eval=FALSE}
 test <- participants_data %>%
   mutate(new_bin = cut(age, breaks=c(0,10,20,30,40,50,60)))
   
@@ -115,8 +110,7 @@ From the output, the observations are,
   * Min age at 18 years old
 * Average joviality score at ~0.49 (range between 0 to 1.0),
   * Min joviality score at 0.0002 (someone needs to be cheered up!)
-  * Max joviality score at 0.99923 (very very happy!)  
-
+  * Max joviality score at 0.99923 (very very happy!)
 <br>
 
 ```{r echo = FALSE}
@@ -137,7 +131,9 @@ From the output, the observations are,
 
 # Time to plot some exciting charts!!!
 
-The code chunk below plots a histogram by using geom_histogram() of ggplot2.
+### Histograms
+
+The code chunk below plots a histogram by using [`geom_histogram()`](https://ggplot2.tidyverse.org/reference/geom_histogram.html) of ggplot2.
 
 ```{r}
 ggplot(data = participants_data,
@@ -155,7 +151,7 @@ From this simple histogram, we can see that participants of age 18-19 are the mi
 
 <br>
 
-Understanding that ggplot also allows us to fill in the chart with another additional parameter, I've added the 'fill' parameter into the code chunk that would embed the 'educationLevel' data into the chart too, as seen below.
+Understanding that ggplot also allows us to fill in the chart with another additional parameter, I've added the 'fill' parameter into the code chunk that would embed the *'educationLevel'* data into the chart too, as seen below.
 
 ```{r}
 ggplot(data = participants_data,
@@ -194,13 +190,13 @@ ggplotly(ggplot(data = participants_data,
   scale_x_continuous(breaks = seq(10, 70, by = 2)) + 
   scale_y_continuous(breaks = seq(0, 100, by = 10)))
 ```
-With this, we are now able to recieve more microdata regarding the different sub-groups in the chart as we hover our cursor over them.
+With this, we are now able to recieve more microdata (eg. count and average) regarding the different sub-groups in the chart as we hover our cursor over them.
 
 <br>
 
 While the previous chart combines everything into 1 chart, supposedly for a 1-stop chart solution, the distribution and count of the participants may not be that obvious.
 
-Hence the next chart includes the 'facet_wrap()' parameter into the code chunk, which splits out the output into separate mini-charts grouped by the Education Level data.
+Hence the next chart includes [`facet_wrap()`](https://ggplot2.tidyverse.org/reference/facet_wrap.html) into the code chunk, which splits out the output into separate mini-charts grouped by the Education Level data.
 
 ```{r}
 ggplotly(ggplot(data = participants_data,
@@ -221,7 +217,7 @@ Now, it will be clearer to see the distribution of the education qualification o
 
 Now that we have established the rough idea of how I am going to plot the charts, let's move on to explore the demographics with a slight change in the analysed parameter.
 
-Here we will be replacing the 'age' column data in x, with 'joviality' column data.
+Here we will be replacing the *'age'* column data in x, with *'joviality'* column data.
 
 ```{r}
 ggplotly(ggplot(data = participants_data,
@@ -329,6 +325,8 @@ ggplot(data = participants_data,
              size=4)
 ```
 
+### Scatter Plot
+
 A scatter plot was charted with participants' age and joviality. It seems like there is no correlation at all between the participants' age and their happiness level.
 
 ```{r}
@@ -368,7 +366,9 @@ ggplotly(ggplot(data = test,
   coord_flip())
 ```
 
-Up next, a boxplot was plotted with geom_boxplot() and geom_point(), with facet_wrap() as below.
+### Boxplot
+
+Next up, a boxplot was plotted with [`geom_boxplot()`](https://ggplot2.tidyverse.org/reference/geom_boxplot.html) and [`geom_point()`](https://ggplot2.tidyverse.org/reference/geom_point.html), with [`facet_wrap()`](https://ggplot2.tidyverse.org/reference/facet_wrap.html) as below.
 
 ```{r}
 ggplot(data = participants_data,
@@ -387,10 +387,10 @@ ggplot(data = participants_data,
 
 Some key observations are,
 
-* Among the Bachelors, most interest groups have a wide range of varying aged participants, except for Interest Group 'F' that kind of stands out
-* Among the Graduates, Interest Group 'A' appears to consist of participants between 35 to 45 (tighter age spread too)
-* For the High School/College, the spread of varying aged participants seemed to be evenly spread
-* For the Low group, Interest Group 'D' has a older range of participants (between age 40 to 50), while Interest Group 'E' has a younger range of participants (between age 25 to ~36)
+* Among the *Bachelors*, most interest groups have a wide range of varying aged participants, except for Interest Group *'F'* that kind of stands out
+* Among the *Graduates*, Interest Group *'A'* appears to consist of participants between 35 to 45 (tighter age spread too)
+* For the *High School/College*, the spread of varying aged participants seemed to be evenly spread
+* For the *Low* group, Interest Group *'D'* has a older range of participants (between age 40 to 50), while Interest Group *'E'* has a younger range of participants (between age 25 to ~36)
 
 While the actual interest group type/names are redacted, this insight does tell us how different age group of various education status has a impact on the kind of interest groups they are likely to be in.
 
@@ -407,53 +407,91 @@ ggplot(data = participants_data,
              colour='red',
              size=2) +
   facet_wrap(educationLevel~.) +
-  ggtitle("Box Plot of Participants' Age across various Interest Group, grouped by Joviality") +
+  ggtitle("Box Plot of Participants' Joviality across Interest Group, grouped by Education") +
   xlab('Interest Group') +
   ylab('Joviality')
 ```
 
-```{r}
+Some key observations are,
+
+* Among the *Bachelors*, participants in Interest Group *'H'* seems to have a larger concentration of people who are not as happy as the rest, with its lower valued upper quartile, while participants in Interest Group *'I'* seems to have more happier people as seen in its higher valued upper quartile.
+* Among the *Graduates*, while Interest Group *'A'*, in our earlier boxplot, appears to consist of participants between 35 to 45 (tighter age spread too), they are also perceived to have an overall lower level of joviality.
+  * Would be interesting to find out why this group of younger folks are not so happy in that Interest Group *'A'*.
+* For the *High School/College*, the spread of varying aged participants seemed to be evenly spread, like its age-related boxplots.
+* For the *Low* group, Interest Group *'F'* has a concentrated group of unhappy participants, followed by participants in Interest Group *'G'*.
+  * Also another interesting observation for future analysis
+
+<br>
+
+
+```{r echo=FALSE, eval=FALSE}
 ggplot(data = participants_data,
          aes(y=age, x = interestGroup)) +
   geom_boxplot() +
   facet_grid(householdSize~.)
 ```
 
-```{r}
+```{r echo=FALSE, eval=FALSE}
 ggplot(data = participants_data,
          aes(y=age, x = haveKids)) +
   geom_boxplot() +
   facet_grid(householdSize~educationLevel)
 ```
 
+In our next boxplot, I've added another dimension (whether the particpants have kids or not) to see if there is any more interesting observations.
+
 ```{r}
 ggplot(data = participants_data,
          aes(y=age, x = haveKids)) +
   geom_boxplot() +
+  ggtitle("Box Plot of Participants' age across various Interest Group, grouped by Education") +
+  xlab('Have Kids?') +
+  ylab('Age') +
   facet_grid(interestGroup~educationLevel) +
+  coord_flip()
+```
+Some key observations are,
+
+* Among the *Bachelors*, participants in Interest Group *'A'* whom have kids tend to be of older age (50+ years old), while participants in Interest Group *'B'* whom have kids tend to be of a young demographic (25+ years old).
+* Among the *Graduates*, nearly all participants in Interest Group *'C'* and *'H'* does not have kids.
+* For the *High School/College*, the spread of participants with or without kids seemed to be evenly spread, like its other boxplots.
+* For the *Low* group, nearly all participants in Interest Group *'A'* and *'I'* does not have kids.
+  * However, nearly all participants in Interest Group *'D'* and *'E'* have kids.
+
+While it may not be intuitive now, but I believe with deeper analysis, we may be able to connect the dots and uncover some insights.
+
+With that, this is the end of my take-home exercise 1. =)
+
+```{r echo=FALSE, eval=FALSE}
+ggplot(data = participants_data,
+         aes(y=age, x = haveKids)) +
+  geom_boxplot() +
+  ggtitle("Box Plot of Participants' Age across various Interest Group, grouped by Joviality") +
+  xlab('Interest Group') +
+  ylab('Joviality') +
+  facet_grid(interestGroup~educationLevel) +
+  facet_wrap(educationLevel~.) +
+  ggtitle("Box Plot of Participants' Age across various Interest Group, grouped by Joviality") +
+  xlab('Interest Group') +
+  ylab('Joviality') +
   coord_flip()
 ```
 
 
-
-
-```{r}
+```{r echo=FALSE, eval=FALSE}
 ggplot(data = participants_data,
          aes(x=age, colour = educationLevel)) +
   geom_density()
 ```
 
-```{r}
+```{r echo=FALSE, eval=FALSE}
 ggplot(data = participants_data,
          aes(x=joviality, y = educationLevel)) +
   geom_density_ridges(rel_min_height = 0.01, scale = 1)
 ```
 
-chr (2): educationLevel, interestGroup
-dbl (4): participantId, householdSize, age, joviality
-lgl (1): haveKids
 
-```{r}
+```{r echo=FALSE, eval=FALSE}
 ggplot(data = participants_data,
          aes(x=joviality, y = interestGroup)) +
   geom_density_ridges(rel_min_height = 0.01, scale = 1)
