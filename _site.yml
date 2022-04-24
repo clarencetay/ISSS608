@@ -9,7 +9,7 @@ navbar:
       href: index.html
     - text: "About"
       href: about.html
-  search: true
+  # search: true
   left:
     - text: "Take-home Exercise"
       menu:
