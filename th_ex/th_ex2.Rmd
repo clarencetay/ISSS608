@@ -29,7 +29,7 @@ Before I get started, it is important for us to ensure that the required R packa
 The chunk code below will do the trick.
 
 ```{r echo = TRUE}
-packages = c('tidyverse','psych','plotly', 'gghighlight')
+packages = c('tidyverse','psych','plotly')
 
 for(p in packages){
   if(!require(p, character.only = T)){
@@ -66,11 +66,13 @@ pk1 <- ggplot(data = participants_data,
 
 pk1
 ```
-Here, the bar plots are displayed with respect to their count. While it does show that there were more people not having kids, it does not tell us whether the proportion of having kids or not, is similar across various education level.
+Here, the bar plots are displayed with respect to their count. It is clear to see that there is a larger proportion of High School/College participants compared to the other education qualification groups.
+
+While it does show that there were more people not having kids, it does not tell us whether the proportion of having kids or not, is similar across various education level.
 
 Aesthetically, it can be improved by,
 
-* Re-wording the x-axix, y-axis and legend label,
+* Re-wording the x-axis, y-axis and legend label,
 * Re-name the 'HighSchoolOrCollege' value in x-axis discrete scale,
 * Re-orientate the y-axis label,
 * Remove the grey background for plot,
@@ -83,26 +85,41 @@ With that, below are some of the adjustments that I've made.
 
 Changes:
 
-* Displaying the data in percentage,
-* Re-ordering the bar plots (with respect to their grouping of education level),
-* Added actual count as label to plots, 
-* Re-named x-axis, y-axis and legend labels,
 * Adjusted y-axis tick intervals,
-* Added subtitle to convey more insights to what the plot is portraying,
+  * Setting the intervals with [`scale_y_continuous`](https://ggplot2.tidyverse.org/reference/scale_continuous.html)
+* Displaying the data in percentage,
+  * Deploying [`scales::percent`](https://scales.r-lib.org/) in [`scale_y_continuous`](https://ggplot2.tidyverse.org/reference/scale_continuous.html)
+* Renaming label for 'HighSchoolOrCollege' with [`scale_x_discrete`](https://ggplot2.tidyverse.org/reference/scale_discrete.html)
+* Re-ordering the bar plots (with respect to their grouping of education level),
+  * Applying [fct_relevel](https://forcats.tidyverse.org/reference/fct_relevel.html) within the [`mutate`](https://dplyr.tidyverse.org/reference/mutate.html) function
+* Added actual count as label to plots,
+  * Using [`geom_text`](https://ggplot2.tidyverse.org/reference/geom_text.html) to add the counts in
+* Added subtitle Re-named x-axis, y-axis and legend labels,
+  * Using [`labs`](https://www.rdocumentation.org/packages/ggplot2/versions/3.3.5/topics/labs) to alter the title, axis and legend labels
 * Removed background colour and x-axis ticks
+  * Use of [`theme`](https://www.rdocumentation.org/packages/ggplot2/versions/3.3.5/topics/theme)
 
 
 ```{r fig.height = 5, fig.width = 10}
 participants_data %>%
-  mutate(`Education Level`= fct_relevel(educationLevel,"Low","HighSchoolOrCollege","Graduate","Bachelors")) %>%
-  ggplot(aes(x= `Education Level`, fill=haveKids)) +
-  geom_bar(position ='fill') +
-  geom_text(stat='count', aes(label=stat(count)),position = position_fill(vjust=0.9)) +
-  scale_y_continuous(breaks = seq(0,1, by = 0.1),labels = scales::percent) +
+  mutate(`Education Level` = fct_relevel(educationLevel,"Low","HighSchoolOrCollege","Graduate","Bachelors")) %>%
+  ggplot(aes(x = `Education Level`, 
+             fill = haveKids)) +
+  geom_bar(position = 'fill') +
+  geom_text(stat = 'count', 
+            aes(label = stat(count)), 
+            position = position_fill(vjust=0.9)) +
+  scale_y_continuous(breaks = seq(0,1, by = 0.1), 
+                     labels = scales::percent) +
   scale_x_discrete(labels = c("Low", "High School Or College", "Bachelors", "Graduate")) +
-  labs(y= 'Percentage\nof\nParticipants', title = "Percentage Distribution of Participants' Education Level", subtitle='With respect to having kids or not', fill='Have Kids?') +
-  theme(axis.title.y= element_text(angle=0), axis.ticks.x= element_blank(),
-        panel.background= element_blank(), axis.line= element_line(color= 'grey'))
+  labs(y = 'Percentage\nof\nParticipants', 
+       title = "Percentage Distribution of Participants' Education Level", 
+       subtitle ='With respect to having kids or not', 
+       fill ='Have Kids?') +
+  theme(axis.title.y = element_text(angle = 0), 
+        axis.ticks.x = element_blank(),
+        panel.background = element_blank(), 
+        axis.line = element_line(color = 'grey'))
 ```
 With this modified plot, we are able to see that the education level seems to play a part in whether a participant is likely to have kids or not. The higher the education level, the less likely that the participant would have kids.
 
@@ -110,15 +127,13 @@ With this modified plot, we are able to see that the education level seems to pl
 
 ### Original Plot
 
-In this plot below, the same author wanted to see the relationship between participants (grouped by their education level) and their respective interest groups.
+In this plot below, the same author wanted to see the relationship between participants (grouped by their interest group) and their respective interest groups.
 
 ```{r}
-pk3 <- ggplot(data = participants_data,
+ggplot(data = participants_data,
               aes(x = interestGroup, fill = haveKids))+
         geom_bar() +
         ggtitle("Have kids according to Interest Group")
-
-pk3
 ```
 
 Similarly, the bar plots are displayed with respect to their count. On a high level, it does show that there were more people not having kids, but it does not tell us whether the proportion of having kids or not, is similar across various interest groups.
@@ -136,25 +151,43 @@ With that, below are some of the adjustments that I've made.
 
 Changes:
 
-* Displaying the data in percentage,
-* Re-ordering the bar plots (with respect to their grouping of interest groups),
-* Added actual count as label to plots, 
-* Re-named x-axis, y-axis and legend labels,
 * Adjusted y-axis tick intervals,
+  * Setting the intervals with [`scale_y_continuous`](https://ggplot2.tidyverse.org/reference/scale_continuous.html)
 * Added second y-axis on the right for easier referencing,
-* Added subtitle to convey more insights to what the plot is portraying,
+  * Setting [`sec_axis`](https://ggplot2.tidyverse.org/reference/sec_axis.html) with [`scale_y_continuous`](https://ggplot2.tidyverse.org/reference/scale_continuous.html)
+* Displaying the data in percentage,
+  * Deploying [`scales::percent`](https://scales.r-lib.org/) in [`scale_y_continuous`](https://ggplot2.tidyverse.org/reference/scale_continuous.html)
+* Re-ordering the bar plots (with respect to their grouping of interest group),
+  * Applying [fct_relevel](https://forcats.tidyverse.org/reference/fct_relevel.html) within the [`mutate`](https://dplyr.tidyverse.org/reference/mutate.html) function
+* Added actual count as label to plots,
+  * Using [`geom_text`](https://ggplot2.tidyverse.org/reference/geom_text.html) to add the counts
+* Added subtitle and re-named x-axis, y-axis and legend labels,
+  * Using [`labs`](https://www.rdocumentation.org/packages/ggplot2/versions/3.3.5/topics/labs) to alter the title, axis and legend labels
 * Removed background colour and x-axis ticks
+  * Use of [`theme`](https://www.rdocumentation.org/packages/ggplot2/versions/3.3.5/topics/theme)
 
 ```{r fig.height = 5, fig.width = 10}
 participants_data %>%
-  mutate(`Interest Group`= fct_relevel(interestGroup,"D","F","B","C","I","E","G","H","J","A")) %>%
-  ggplot(aes(x= `Interest Group`, fill=haveKids)) +
-  geom_bar(position ='fill') +
-  geom_text(stat='count', aes(label=stat(count)),position = position_fill(vjust=0.9)) +
-  scale_y_continuous(breaks = seq(0,1, by = 0.1),labels = scales::percent, sec.axis=sec_axis(trans=~., labels = scales::percent, breaks = seq(0,1, by = 0.1))) +
-  labs(y= 'Percentage\nof\nParticipants', title = "Percentage Distribution of Participants' Interest Group", subtitle='With respect to having kids or not', fill='Have Kids?') +
-  theme(axis.title.y= element_text(angle=0), axis.ticks.x= element_blank(),
-        panel.background= element_blank(), axis.line= element_line(color= 'grey'))
+  mutate(`Interest Group` = fct_relevel(interestGroup,"D","F","B","C","I","E","G","H","J","A")) %>%
+  ggplot(aes(x = `Interest Group`, 
+             fill = haveKids)) +
+  geom_bar(position = 'fill') +
+  geom_text(stat = 'count', 
+            aes(label = stat(count)),
+            position = position_fill(vjust = 0.9)) +
+  scale_y_continuous(breaks = seq(0,1, by = 0.1),
+                     labels = scales::percent, 
+                     sec.axis = sec_axis(trans = ~., 
+                                         labels = scales::percent, 
+                                         breaks = seq(0,1, by = 0.1))) +
+  labs(y = 'Percentage\nof\nParticipants', 
+       title = "Percentage Distribution of Participants' Interest Group", 
+       subtitle = 'With respect to having kids or not', 
+       fill = 'Have Kids?') +
+  theme(axis.title.y = element_text(angle = 0), 
+        axis.ticks.x = element_blank(),
+        panel.background = element_blank(), 
+        axis.line = element_line(color= 'grey'))
 ```
 
 With this modified plot, we are able to see that the interest groups does not seem to have a strong influence to whether a participant is likely to have kids or not. However, it is interesting to note that ~40% of the participants in Interest Group D have kids, nearly twice as much in proportion to participants in Interest Group A.
@@ -167,22 +200,33 @@ As I was making the improvements for the previous plot, I had a thought to combi
 
 On top of applying similar aesthetics from previous attempts, additional modifications were added too,
 
-* 
+* Using [`facet_grid`](https://ggplot2.tidyverse.org/reference/facet_grid.html) to lay out the plots in grids
+  * Renaming the "HighSchoolOrCollege" by applying `labeller` parameter within facet_grid
 
 ```{r fig.height = 5, fig.width = 10}
 participants_data %>%
-  mutate(`Interest Group`= interestGroup) %>%
-  ggplot(aes(x= `Interest Group`, fill=haveKids)) +
+  mutate(`Interest Group` = interestGroup) %>%
+  ggplot(aes(x = `Interest Group`, 
+             fill = haveKids)) +
   geom_bar(position ='fill') +
-  facet_grid(~educationLevel, labeller = labeller(educationLevel = 
-    c("HighSchoolOrCollege" = "High School Or College",
-      "Bachelors" = "Bachelors",
-      "Graduate" = "Graduate",
-      "Low" = "Low"))) +
-  scale_y_continuous(breaks = seq(0,1, by = 0.1),labels = scales::percent, sec.axis=sec_axis(trans=~., labels = scales::percent, breaks = seq(0,1, by = 0.1))) +
-  labs(y= 'Percentage\nof\nParticipants', title = "Percentage Distribution of Participants' Interest Group and Education Level", subtitle='With respect to having kids or not', fill='Have Kids?') +
-  theme(axis.title.y= element_text(angle=0), axis.ticks.x= element_blank(),
-        panel.background= element_blank(), axis.line= element_line(color= 'grey'))
+  facet_grid(~educationLevel, 
+             labeller = labeller(educationLevel = c("HighSchoolOrCollege" = "High School Or College",
+                                                    "Bachelors" = "Bachelors",
+                                                    "Graduate" = "Graduate",
+                                                    "Low" = "Low"))) +
+  scale_y_continuous(breaks = seq(0,1, by = 0.1),
+                     labels = scales::percent, 
+                     sec.axis = sec_axis(trans = ~., 
+                                         labels = scales::percent, 
+                                         breaks = seq(0,1, by = 0.1))) +
+  labs(y = 'Percentage\nof\nParticipants', 
+       title = "Percentage Distribution of Participants' Interest Group and Education Level", 
+       subtitle ='With respect to having kids or not', 
+       fill = 'Have Kids?') +
+  theme(axis.title.y = element_text(angle = 0), 
+        axis.ticks.x = element_blank(),
+        panel.background = element_blank(), 
+        axis.line = element_line(color = 'grey'))
 ```
 
 Interestingly, within the Low education level participants,
@@ -195,20 +239,6 @@ Interestingly, within the Low education level participants,
 
 
 
-
-
-
-```{r eval=FALSE}
-participants_data %>%
-  mutate(`Education Level`= fct_inorder(educationLevel)) %>%
-  ggplot(aes(x= `Education Level`, fill=haveKids)) +
-  geom_bar(position ='fill') +
-  geom_text(stat='count', aes(label=stat(count)),position = position_fill(vjust=0.9)) +
-  scale_y_continuous(breaks = seq(0,1, by = 0.1),labels = scales::percent) +
-  labs(y= 'Percentage\nof\nParticipants', title = "Percentage Distribution of Participants' Education Level", fill='Have Kids?') +
-  theme(axis.title.y= element_text(angle=0), axis.ticks.x= element_blank(),
-        panel.background= element_blank(), axis.line= element_line(color= 'grey'))
-```
 
 
 
