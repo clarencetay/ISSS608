@@ -20,7 +20,7 @@ knitr::opts_chunk$set(echo = TRUE,
 
 # Overview
 
-In this take-home exercise, I will be reviewing and providing my critics (in terms of clarity and aesthetics) on one of my classmate's Take-home Exercise. On top of that, I will attempt to improve on the original visualization, by using the data visualization principles and best practices learnt in Lesson 1 and 2.
+In this take-home exercise, I will be reviewing and providing my critics (in terms of clarity and aesthetics) on one of my [classmate's](https://zhenglinliuvisual.netlify.app/th_ex/th_ex1.html) Take-home Exercise. On top of that, I will attempt to improve on the original visualization, by using the data visualization principles and best practices learnt in Lesson 1 and 2.
 
 # Getting Started
 
@@ -29,7 +29,7 @@ Before I get started, it is important for us to ensure that the required R packa
 The chunk code below will do the trick.
 
 ```{r echo = TRUE}
-packages = c('tidyverse','psych','plotly')
+packages = c('tidyverse')
 
 for(p in packages){
   if(!require(p, character.only = T)){
@@ -236,13 +236,4 @@ Interestingly, within the Low education level participants,
 * Interest Group B and J has ~50% of their participants having kids,
 * Interest Group F has no participants with kids,
   * While not exactly the same, but participants of Bachelors qualification in Interest Group F had the lowest proportion of participants with kids, among the Bachelors group.
-
-
-
-
-
-
-
-
-
 
