@@ -1,0 +1,183 @@
+---
+title: "Take-home Exercise 3"
+description: |
+  Creating data visualisation beyond default
+author:
+  - name: Clarence Tay 
+    url: https://www.linkedin.com/in/clarencetay/
+    affiliation: Singapore Management University - MITB
+    affiliation_url: https://scis.smu.edu.sg/master-it-business
+date: "`r Sys.Date()`"
+output: distill::distill_article
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, 
+                      eval = TRUE, 
+                      warning = FALSE, 
+                      message = FALSE)
+```
+
+# Overview
+
+In this take-home exercise, I will...
+
+# Getting Started
+
+Before I get started, it is important for us to ensure that the required R packages have been installed. If yes, we will load the R packages. If they have yet to be installed, I will install the R packages and load them onto R environment.
+
+The chunk code below will do the trick.
+
+```{r echo = TRUE}
+packages = c('tidyverse','psych','plotly')
+
+for(p in packages){
+  if(!require(p, character.only = T)){
+    install.packages(p)
+    }
+  library(p, character.only = T)
+  }
+```
+
+# Importing Data
+
+The code chunk below imports *Participants.csv* from the data folder, into R by using [`read_csv()`](https://readr.tidyverse.org/reference/read_delim.html) of [**readr**](https://readr.tidyverse.org/) and save it as an tibble dataframe called *participants_data*.
+
+```{r}
+# emp_data <- read_csv("data/Employers.csv")
+
+job_data <- read_csv("data/Jobs.csv")
+
+fin_data <- read_csv("data/FinancialJournal.csv")
+
+participants_data <- read_csv("data/Participants.csv")
+
+pub_data <- read_csv("data/Pubs.csv")
+
+restaurant_data <- read_csv("data/Restaurants.csv")
+
+checkin_data <- read_csv("data/CheckinJournal.csv")
+
+```
+
+<br>
+
+```{r}
+glimpse(checkin_data)
+```
+
+```{r}
+table(fin_data$category)
+```
+
+```{r}
+des <- describe(fin_data, fast = TRUE)
+print(des, digits=5)
+```
+
+```{r}
+ggplot(data=checkin_data, aes(x='participantId')) +
+  geom_bar() +
+  facet_wrap(~venueType)
+
+```
+
+```{r}
+merged_dataframe <- merge(x = participants_data, y = checkin_data, all.x = TRUE)
+```
+
+```{r}
+ggplotly(ggplot(data = merged_dataframe,
+       aes(x=age, fill= venueType)) +
+  geom_histogram(bins=20, color='black') +
+  ggtitle("Histogram of Participants' age, filled by Education Level") +
+  xlab('Age') +
+  ylab('Count') +
+  labs(fill="Education Level") + 
+  scale_x_continuous(breaks = seq(10, 70, by = 2)) + 
+  scale_y_continuous(breaks = seq(0, 100, by = 10)))
+```
+
+```{r}
+ggplot(data = merged_dataframe,
+         aes(y=age, x = haveKids)) +
+  geom_boxplot() +
+  ggtitle("Box Plot of Participants' age across various Interest Group, grouped by Education") +
+  xlab('Have Kids?') +
+  ylab('Age') +
+  facet_grid(educationLevel~venueType) +
+  coord_flip()
+```
+
+
+```{r}
+merged_dataframe %>%
+  mutate(`Education Level` = fct_relevel(educationLevel,"Low","HighSchoolOrCollege","Graduate","Bachelors")) %>%
+  ggplot(aes(x = `Education Level`, 
+             fill = venueType)) +
+  geom_bar(position = 'fill') +
+  geom_text(stat = 'count', 
+            aes(label = stat(count)), 
+            position = position_fill(vjust=0.9)) +
+  scale_y_continuous(breaks = seq(0,1, by = 0.1), 
+                     labels = scales::percent) +
+  scale_x_discrete(labels = c("Low", "High School Or College", "Bachelors", "Graduate")) +
+  labs(y = 'Percentage\nof\nParticipants', 
+       title = "Percentage Distribution of Participants' Education Level", 
+       subtitle ='With respect to where Participants are travelling to', 
+       fill ='Venue') +
+  theme(axis.title.y = element_text(angle = 0), 
+        axis.ticks.x = element_blank(),
+        panel.background = element_blank(), 
+        axis.line = element_line(color = 'grey'))
+```
+
+
+
+```{r}
+
+checkin_data %>%
+  mutate(venueType) %>% 
+  ggplot(aes(x=))
+
+
+
+ggplot(data=checkin_data, aes(x='participantId')) +
+  geom_bar() +
+  facet_wrap(~venueType)
+```
+
+
+
+participants_data %>%
+  mutate(`Education Level` = fct_relevel(educationLevel,"Low","HighSchoolOrCollege","Graduate","Bachelors")) %>%
+  ggplot(aes(x = `Education Level`, 
+             fill = haveKids)) +
+  geom_bar(position = 'fill') +
+  geom_text(stat = 'count', 
+            aes(label = stat(count)), 
+            position = position_fill(vjust=0.9)) +
+  scale_y_continuous(breaks = seq(0,1, by = 0.1), 
+                     labels = scales::percent) +
+  scale_x_discrete(labels = c("Low", "High School Or College", "Bachelors", "Graduate")) +
+  labs(y = 'Percentage\nof\nParticipants', 
+       title = "Percentage Distribution of Participants' Education Level", 
+       subtitle ='With respect to having kids or not', 
+       fill ='Have Kids?') +
+  theme(axis.title.y = element_text(angle = 0), 
+        axis.ticks.x = element_blank(),
+        panel.background = element_blank(), 
+        axis.line = element_line(color = 'grey'))
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -18,11 +18,17 @@ navbar:
       - text: "Take-home Exercise 2"
         href: th_ex/th_ex2.html
       - text: "Take-home Exercise 3"
-        href: th_ex/th_ex3.html
+        href: th_ex/th_ex_3.html
       - text: "Take-home Exercise 4"
         href: th_ex/th_ex4.html
       - text: "Take-home Exercise 5"
         href: th_ex/th_ex5.html
+        
+    - text: "In-Class Exercise"
+      menu:
+        - text: "In-Class Exercise 4"
+          href: ic_ex/ic_ex4.html
+          
     - text: "DataViz Makeover"
       menu:
         - text: "DataViz Makeover 1"
