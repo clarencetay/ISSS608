@@ -48,8 +48,6 @@ exam <- read_csv('data/Exam_data.csv')
 
 #### Parametric
 ```{r fig.height = 6, fig.width = 8}
-set.seed(1234)
-
 ggbetweenstats(
   data = exam,
   x = RACE, 
@@ -60,8 +58,6 @@ ggbetweenstats(
 
 #### Non-parametric
 ```{r fig.height = 6, fig.width = 8}
-set.seed(1234)
-
 ggbetweenstats(
   data = exam,
   x = RACE, 
