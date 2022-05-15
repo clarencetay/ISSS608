@@ -29,7 +29,7 @@ Before I get started, it is important for us to ensure that the required R packa
 The chunk code below will do the trick.
 
 ```{r echo = TRUE}
-packages = c('tidyverse','psych','plotly')
+packages = c('tidyverse','psych','plotly', 'ggiraph')
 
 for(p in packages){
   if(!require(p, character.only = T)){
@@ -170,13 +170,169 @@ participants_data %>%
         axis.line = element_line(color = 'grey'))
 
 
+```{r}
+merged_rest <- merge(x = checkin_data, y = restaurant_data, by.x = 'venueId', by.y = 'restaurantId')
+merged_pub <- merge(x = checkin_data, y = pub_data, by.x = 'venueId', by.y = 'pubId')
+```
+
+```{r}
+merged_rest$Month_Yr <- format(as.Date(merged_rest$timestamp), "%Y-%m")
+
+# need zoo package
+# merged_rest$Month_Yr <- as.yearmon(merged_rest$timestamp))
+```
+
+```{r}
+glimpse(merged_rest)
+```
+
+```{r}
+table(merged_rest$venueId)
+```
+
+```{r}
+merged_rest$venueId = as.factor(merged_rest$venueId)
+```
+
+```{r}
+p <- ggplot(data = merged_rest, aes(x = fct_infreq(venueId), fill = Month_Yr)) +
+  geom_bar(stat="count",
+           position = position_stack(reverse = TRUE),
+           aes(text = paste0("Month_Yr: ", Month_Yr, "<br>", 
+                             "Max Occupancy: ", maxOccupancy,"<br>",
+                             "Building: ", buildingId,"<br>", 
+                             "Food Cost: ", foodCost))) + 
+  coord_flip() +
+  # facet_wrap(~Month_Yr) +
+  scale_y_continuous(breaks = seq(0,50000, by = 5000)) +
+  labs(x= 'Restaurant ID',
+       y = 'Count of Customers to Restaurants', 
+       title = "XXX", 
+       subtitle = 'YYY', 
+       fill = 'Year-Month') +
+  theme(axis.title.y = element_text(angle = 0), 
+        #axis.ticks.x = element_blank(),
+        panel.background = element_blank(), 
+        axis.line = element_line(color= 'grey'))
+
+ggplotly(p, tooltip = c("x","text"))
+```
+
+```{r}
+p <- ggplot(data = merged_rest, aes(x = fct_infreq(venueId), fill = Month_Yr)) +
+  geom_bar(stat="count",
+           position = position_stack(reverse = TRUE),
+           aes(text = paste0("Month_Yr: ", Month_Yr, "<br>", 
+                             "Max Occupancy: ", maxOccupancy,"<br>",
+                             "Building: ", buildingId,"<br>", 
+                             "Food Cost: ", foodCost))) + 
+  coord_flip() +
+  facet_wrap(~Month_Yr) +
+  scale_y_continuous(breaks = seq(0,50000, by = 5000)) +
+  labs(x= 'Restaurant ID',
+       y = 'Count of Customers to Restaurants', 
+       title = "XXX", 
+       subtitle = 'YYY', 
+       fill = 'Year-Month') +
+  theme(axis.title.y = element_text(angle = 0), 
+        #axis.ticks.x = element_blank(),
+        panel.background = element_blank(), 
+        axis.line = element_line(color= 'grey'),
+        panel.margin.x = unit(1,"lines"),
+        panel.margin.y = unit(2,"lines"))
+
+ggplotly(p, tooltip = c("x","text"))
+```
+
+```{r}
+merged_pub$Month_Yr <- format(as.Date(merged_pub$timestamp), "%Y-%m")
+glimpse(merged_pub)
+table(merged_pub$venueId)
+merged_pub$venueId = as.factor(merged_pub$venueId)
+```
+
+aes(text = paste0("Month_Yr: ", Month_Yr, "<br>", "Hourly Cost: ", hourlyCost))
+
+, tooltip = "text"
+
+```{r}
+p <- ggplot(data = merged_pub, aes(x = fct_infreq(venueId), fill = Month_Yr)) +
+  geom_bar(stat="count", 
+           position = position_stack(reverse = TRUE),
+           aes(text = paste0("Month_Yr: ", Month_Yr, "<br>", 
+                             "Max Occupancy: ", maxOccupancy,"<br>",
+                             "Building: ", buildingId,"<br>", 
+                             "Hourly Cost: ", hourlyCost))) + 
+  coord_flip() +
+  scale_y_continuous(breaks = seq(0,60000, by = 5000)) +
+  labs(x= 'Pub ID',
+       y = 'Count of Customers to Pubs', 
+       title = "XXX", 
+       subtitle = 'YYY', 
+       fill = 'Year-Month') +
+  theme(axis.title.y = element_text(angle = 0), 
+        #axis.ticks.x = element_blank(),
+        panel.background = element_blank(), 
+        axis.line = element_line(color= 'grey'))
+
+ggplotly(p, tooltip = c("x","text"))
+```
+
+```{r}
+p <- ggplot(data = merged_pub, aes(x = fct_infreq(venueId), fill = Month_Yr)) +
+  geom_bar(stat="count", 
+           position = position_stack(reverse = TRUE),
+           aes(text = paste0("Month_Yr: ", Month_Yr, "<br>", 
+                             "Max Occupancy: ", maxOccupancy,"<br>",
+                             "Building: ", buildingId,"<br>", 
+                             "Hourly Cost: ", hourlyCost))) + 
+  coord_flip() +
+  facet_wrap(~Month_Yr) +
+  scale_y_continuous(breaks = seq(0,60000, by = 5000)) +
+  labs(x= 'Pub ID',
+       y = 'Count of Customers to Pubs', 
+       title = "XXX", 
+       subtitle = 'YYY', 
+       fill = 'Year-Month') +
+  theme(axis.title.y = element_text(angle = 0), 
+        #axis.ticks.x = element_blank(),
+        panel.background = element_blank(), 
+        axis.line = element_line(color= 'grey'))
+
+ggplotly(p, tooltip = c("x","text"))
+```
+
+```{r}
+p <- ggplot(data = merged_pub, aes(x = fct_infreq(venueId), fill = Month_Yr)) +
+  geom_bar(stat="count", 
+           position = position_stack(reverse = TRUE),
+           aes(text = paste0("Month_Yr: ", Month_Yr, "<br>", 
+                             "Max Occupancy: ", maxOccupancy,"<br>",
+                             "Building: ", buildingId,"<br>", 
+                             "Hourly Cost: ", hourlyCost))) + 
+  coord_flip() +
+  scale_y_continuous(breaks = seq(0,60000, by = 5000)) +
+  labs(x= 'Pub ID',
+       y = 'Count of Customers to Pubs', 
+       title = "XXX", 
+       subtitle = 'YYY', 
+       fill = 'Year-Month') +
+  theme(axis.title.y = element_text(angle = 0), 
+        #axis.ticks.x = element_blank(),
+        panel.background = element_blank(), 
+        axis.line = element_line(color= 'grey'))
+
+ggplotly(p, tooltip = c("x","text"))
+```
 
 
 
+```{r}
+ggplot(data = merged_rest, aes(x = fct_infreq(venueId), fill = Month_Yr)) +
+  geom_bar(stat="count") + 
+  coord_flip()
 
-
-
-
+```
 
 
 
