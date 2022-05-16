@@ -1,13 +1,14 @@
 ---
 title: "Take-home Exercise 3"
 description: |
-  Creating data visualisation beyond default
+  Putting Visual Analytics into Practical Use
 author:
   - name: Clarence Tay 
     url: https://www.linkedin.com/in/clarencetay/
     affiliation: Singapore Management University - MITB
     affiliation_url: https://scis.smu.edu.sg/master-it-business
-date: "`r Sys.Date()`"
+date: "May 15, 2022"
+#date: "`r Sys.Date()`"
 output: distill::distill_article
 ---
 
@@ -20,7 +21,7 @@ knitr::opts_chunk$set(echo = TRUE,
 
 # Overview
 
-In this take-home exercise, I will...
+In this take-home exercise, I will be exploring the financial health of the city Engagement, Ohio USA, in an attempt to find out which businesses are doing better or worse than the others.
 
 # Getting Started
 
@@ -29,7 +30,7 @@ Before I get started, it is important for us to ensure that the required R packa
 The chunk code below will do the trick.
 
 ```{r echo = TRUE}
-packages = c('tidyverse','psych','plotly')
+packages = c('tidyverse','psych','plotly', 'ggiraph', 'treemap', 'd3treeR','gganimate')
 
 for(p in packages){
   if(!require(p, character.only = T)){
@@ -41,52 +42,51 @@ for(p in packages){
 
 # Importing Data
 
-The code chunk below imports *Participants.csv* from the data folder, into R by using [`read_csv()`](https://readr.tidyverse.org/reference/read_delim.html) of [**readr**](https://readr.tidyverse.org/) and save it as an tibble dataframe called *participants_data*.
+The code chunk below imports *Participants.csv*, *CheckinJournal.csv*, *Restaurants.csv* and *Pubs.csv* from the data folder, into R by using [`read_csv()`](https://readr.tidyverse.org/reference/read_delim.html) of [**readr**](https://readr.tidyverse.org/) and save it as an tibble dataframe called *participants_data*, *checkin_data*, *restaurant_data* and *pub_data* respectively.
 
 ```{r}
-# emp_data <- read_csv("data/Employers.csv")
-
-job_data <- read_csv("data/Jobs.csv")
-
-fin_data <- read_csv("data/FinancialJournal.csv")
-
 participants_data <- read_csv("data/Participants.csv")
-
-pub_data <- read_csv("data/Pubs.csv")
-
-restaurant_data <- read_csv("data/Restaurants.csv")
 
 checkin_data <- read_csv("data/CheckinJournal.csv")
 
+restaurant_data <- read_csv("data/Restaurants.csv")
+
+pub_data <- read_csv("data/Pubs.csv")
 ```
 
 <br>
 
-```{r}
+```{r eval=FALSE, echo=FALSE}
 glimpse(checkin_data)
 ```
 
-```{r}
+```{r eval=FALSE, echo=FALSE}
+fin_data <- read_csv("data/FinancialJournal.csv")
 table(fin_data$category)
 ```
 
-```{r}
+```{r eval=FALSE, echo=FALSE}
 des <- describe(fin_data, fast = TRUE)
 print(des, digits=5)
 ```
 
-```{r}
+```{r eval = FALSE, echo = FALSE}
 ggplot(data=checkin_data, aes(x='participantId')) +
   geom_bar() +
   facet_wrap(~venueType)
 
 ```
 
+# Let's get Started!
+
+First up, I will be merging the check-in journal (imported as *checkin_data*) with the *participants_data*, so that we can start some exploration of the data.
+
 ```{r}
 merged_dataframe <- merge(x = participants_data, y = checkin_data, all.x = TRUE)
 ```
 
-```{r}
+
+```{r echo =FALSE, eval = FALSE}
 ggplotly(ggplot(data = merged_dataframe,
        aes(x=age, fill= venueType)) +
   geom_histogram(bins=20, color='black') +
@@ -98,7 +98,8 @@ ggplotly(ggplot(data = merged_dataframe,
   scale_y_continuous(breaks = seq(0, 100, by = 10)))
 ```
 
-```{r}
+
+```{r echo =FALSE, eval = FALSE}
 ggplot(data = merged_dataframe,
          aes(y=age, x = haveKids)) +
   geom_boxplot() +
@@ -109,6 +110,7 @@ ggplot(data = merged_dataframe,
   coord_flip()
 ```
 
+Out of curiousity, I have plotted a chart to see the proportion of participants (varying education background) with respect to the check-ins that they have made.
 
 ```{r}
 merged_dataframe %>%
@@ -132,52 +134,338 @@ merged_dataframe %>%
         axis.line = element_line(color = 'grey'))
 ```
 
+Not surprising, it seems like regardless of education level, participants had similar proportion of check-ins to their home, workplace, restaurants and pubs.
 
+Except for Restaurant visiting, which I do see a slightly smaller proportion of them under Low education, compared to the other education level groups.
+The assumption could be that Low educated participants may find that eating in restaurants are not economical (with respect to the wages that they earn).
+However, the proportion of them going to Pub seems to be very similar to the other groups. Rationally, this does not make sense if we want to apply the same logic from the restaurant assumption, but at the same time I can understand that why it may be possible as entertainment/leisure drinking might place a higher importance than food on the table for people.
+
+
+## Merging more datasets
+
+To explore the restaurants and pubs datasets, I will have to merge them with the check-in journals in order to find out the visitorship of these businesses.
+From there, we should be able to see which are the more popular (and least popular) outlets.
+
+The [merge](https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/merge) function is used again, via a Left Join.
 
 ```{r}
+merged_rest <- merge(x = checkin_data, y = restaurant_data, by.x = 'venueId', by.y = 'restaurantId')
+merged_pub <- merge(x = checkin_data, y = pub_data, by.x = 'venueId', by.y = 'pubId')
+```
 
-checkin_data %>%
-  mutate(venueType) %>% 
-  ggplot(aes(x=))
+```{r echo=FALSE}
+# need zoo package
+# merged_rest$Yr_Month <- as.yearmon(merged_rest$timestamp))
+```
+
+The timestamp was also transformed/simplified to Year-Month format to allow breakdown analysis by Months instead.
+
+```{r}
+merged_rest$Yr_Month <- format(as.Date(merged_rest$timestamp), "%Y-%m")
+```
+
+```{r eval = FALSE, echo=FALSE}
+glimpse(merged_rest)
+```
+
+```{r eval = FALSE, echo=FALSE}
+table(merged_rest$venueId)
+```
+
+The venue ID was also transformed to factor format to make them into categorical values, instead of continuous values (which will confuse and mess up the axis).
+
+```{r}
+merged_rest$venueId = as.factor(merged_rest$venueId)
+```
+
+### Bar Plots with Plotly
+
+#### Restaurants
+The following chart is plotted with [**plotly**](https://plotly.com/r/) package.
+
+```{r fig.height= 7, fig.width=9}
+p <- ggplot(data = merged_rest, aes(x = fct_infreq(venueId), fill = Yr_Month)) +
+  geom_bar(stat="count",
+           position = position_stack(reverse = TRUE),
+           aes(text = paste0("Yr_Month: ", Yr_Month, "<br>", 
+                             "Max Occupancy: ", maxOccupancy,"<br>",
+                             "Building: ", buildingId,"<br>", 
+                             "Food Cost: ", foodCost))) + 
+  coord_flip() +
+  # facet_wrap(~Yr_Month) +
+  scale_y_continuous(breaks = seq(0,50000, by = 5000)) +
+  labs(x= 'Restaurant ID',
+       y = 'Count of Customers to Restaurants', 
+       title = "Visits to Restaurants by Participants from Mar 2022 to May 2023",
+       fill = 'Year-Month') +
+  theme(axis.title.y = element_text(angle = 0), 
+        #axis.ticks.x = element_blank(),
+        panel.background = element_blank(), 
+        axis.line = element_line(color= 'grey'))
 
 
+ggplotly(p, tooltip = c("x","text"))
+```
 
-ggplot(data=checkin_data, aes(x='participantId')) +
-  geom_bar() +
-  facet_wrap(~venueType)
+It is obvious that that Restaurant 1801 is the top visited restaurants in town, while Restaurant 1349 is the least visited restaurant.
+Additional info were added to the tooltip too for reference.
+It does not seem like the food cost nor the max occupancy has much influence on its visitorship.
+
+<br>
+
+Another chart of similar data was plotted, this time with facet wrap by Year-Months.
+
+```{r fig.height= 15, fig.width=20}
+p <- ggplot(data = merged_rest, aes(x = fct_infreq(venueId), fill = Yr_Month)) +
+  geom_bar(stat="count",
+           position = position_stack(reverse = TRUE),
+           aes(text = paste0("Yr_Month: ", Yr_Month, "<br>", 
+                             "Max Occupancy: ", maxOccupancy,"<br>",
+                             "Building: ", buildingId,"<br>", 
+                             "Food Cost: ", foodCost))) + 
+  coord_flip() +
+  facet_wrap(~Yr_Month) +
+  scale_y_continuous(breaks = seq(0,50000, by = 5000)) +
+  labs(x= 'Restaurant\nID',
+       y = 'Count of Customers to Restaurants', 
+       title = "Visits to Restaurants by Participants from Mar 2022 to May 2023",
+       fill = 'Year-Month') +
+  theme(axis.title.y = element_text(angle = 0), 
+        #axis.ticks.x = element_blank(),
+        panel.background = element_blank(), 
+        axis.line = element_line(color= 'grey'),
+        panel.margin.x = unit(1,"lines"),
+        panel.margin.y = unit(2,"lines"))
+
+ggplotly(p, tooltip = c("x","text"))
+```
+
+Other than 2022-03 (March 2022) seeing a different ranking and volume in terms of their visitorship, it seems like from 2022-04 (April 2022) onwards, the ranking of the all restaurants' visitorship is pretty much set in stone ever since (as you can see from its similar trends over the months).
+
+In March 2022, Restaurant 895 was ranked 2nd in visitorship but it gradually dropped to 7th position in May 2022 and has held its position ever since.
+<br>
+
+#### Pubs
+
+A similar analysis was done for the Pubs too.
+The same data wrangling steps were applied for Pubs dataset too.
+
+```{r}
+merged_pub$Yr_Month <- format(as.Date(merged_pub$timestamp), "%Y-%m")
+merged_pub$venueId = as.factor(merged_pub$venueId)
+```
+
+The following chart is plotted with [**plotly**](https://plotly.com/r/) package.
+
+```{r fig.height= 7, fig.width=9}
+p <- ggplot(data = merged_pub, aes(x = fct_infreq(venueId), fill = Yr_Month)) +
+  geom_bar(stat="count", 
+           position = position_stack(reverse = TRUE),
+           aes(text = paste0("Yr_Month: ", Yr_Month, "<br>", 
+                             "Max Occupancy: ", maxOccupancy,"<br>",
+                             "Building: ", buildingId,"<br>", 
+                             "Hourly Cost: ", hourlyCost))) + 
+  coord_flip() +
+  scale_y_continuous(breaks = seq(0,60000, by = 5000)) +
+  labs(x= 'Pub ID',
+       y = 'Count of Customers to Pubs', 
+       title = "Visits to Pubs by Participants from Mar 2022 to May 2023",
+       fill = 'Year-Month') +
+  theme(axis.title.y = element_text(angle = 0), 
+        #axis.ticks.x = element_blank(),
+        panel.background = element_blank(), 
+        axis.line = element_line(color= 'grey'))
+
+ggplotly(p, tooltip = c("x","text"))
+```
+
+It is obvious that that Pub 1344 and 1342 are the top 2 visited pubs in town, while Restaurant 444 is the least visited pub.
+Additional info were added to the tooltip too for reference.
+Similarly, it does not seem like the food cost nor the max occupancy has much influence on its visitorship.
+
+Another chart of similar data was plotted, this time with facet wrap by Year-Months.
+
+```{r fig.height= 12, fig.width=20}
+p <- ggplot(data = merged_pub, aes(x = fct_infreq(venueId), fill = Yr_Month)) +
+  geom_bar(stat="count", 
+           position = position_stack(reverse = TRUE),
+           aes(text = paste0("Yr_Month: ", Yr_Month, "<br>", 
+                             "Max Occupancy: ", maxOccupancy,"<br>",
+                             "Building: ", buildingId,"<br>", 
+                             "Hourly Cost: ", hourlyCost))) + 
+  coord_flip() +
+  facet_wrap(~Yr_Month) +
+  scale_y_continuous(breaks = seq(0,60000, by = 5000)) +
+  labs(x= 'Pub ID',
+       y = 'Count of Customers to Pubs', 
+       title = "Visits to Pubs by Participants from Mar 2022 to May 2023",
+       fill = 'Year-Month') +
+  theme(axis.title.y = element_text(angle = 0), 
+        #axis.ticks.x = element_blank(),
+        panel.background = element_blank(), 
+        axis.line = element_line(color= 'grey'),
+        panel.margin.x = unit(1,"lines"),
+        panel.margin.y = unit(2,"lines"))
+
+ggplotly(p, tooltip = c("x","text"))
+```
+
+Right from the start, Pub 1344 and 1342 were already the top 2 pubs frequently visited.
+
+The overall trends for all pubs remained the same through this data period, except for Pub 1343 which started as the short-lived 3rd ranked pub in March 2022.
+
+### Treemap
+
+#### Restaurants
+
+The merged dataset were modified slightly (with group_by and select) to fit into our treemap analysis.
+
+```{r}
+merged_rest_tm <- merged_rest %>% 
+  group_by(venueId, Yr_Month) %>%
+  mutate(count = n()) %>% 
+  select(venueId, Yr_Month, count)
+```
+
+The following chart is plotted with [*treemap*](https://www.rdocumentation.org/packages/treemap/versions/2.4-3/topics/treemap)
+
+```{r fig.height=5, fig.width= 10}
+merged_rest_tm_int <- treemap(merged_rest_tm,
+        index=c("venueId","Yr_Month"),
+        vSize="count",
+        vColor="count",
+        algorithm = "pivotSize",
+        title="Treemap - Visits to Restaurants by Participants from Mar 2022 to May 2023"
+        )
+
+```
+
+This treemap allows us to also see which Restuarant is doing better, though it might look slightly messier.
+
+Hence, an enhanced treemap is plotted again with d3tree function of the [*d3treeR*](https://github.com/d3treeR/d3treeR) package.
+
+```{r}
+d3tree(merged_rest_tm_int, rootname = "Treemap - Visits to Restaurants by Participants from Mar 2022 to May 2023" )
+```
+This interactive chart tells us the same info, but with less clutter and looks much more neater.
+<br>
+
+#### Pubs
+
+Likewise, similar charts were plotted for Pubs.
+The merged dataset were modified slightly (with group_by and select) to fit into our treemap analysis.
+
+```{r}
+merged_pub_tm <- merged_pub %>% 
+  group_by(venueId, Yr_Month) %>%
+  mutate(count = n()) %>% 
+  select(venueId, Yr_Month, count)
+```
+
+Static Tree Map for Pubs
+
+```{r fig.height=5, fig.width= 10}
+merged_pub_tm_int <- treemap(merged_pub_tm,
+        index=c("venueId","Yr_Month"),
+        vSize="count",
+        vColor="count",
+        algorithm = "pivotSize",
+        title="Treemap - Visits to Pubs by Participants from Mar 2022 to May 2023"
+        )
+
+```
+
+Interactive Tree Map for Pubs
+
+```{r}
+d3tree(merged_pub_tm_int, rootname = "Treemap - Visits to Pubs by Participants from Mar 2022 to May 2023" )
 ```
 
 
+### Animating the business growth rate
 
-participants_data %>%
-  mutate(`Education Level` = fct_relevel(educationLevel,"Low","HighSchoolOrCollege","Graduate","Bachelors")) %>%
-  ggplot(aes(x = `Education Level`, 
-             fill = haveKids)) +
-  geom_bar(position = 'fill') +
-  geom_text(stat = 'count', 
-            aes(label = stat(count)), 
-            position = position_fill(vjust=0.9)) +
-  scale_y_continuous(breaks = seq(0,1, by = 0.1), 
-                     labels = scales::percent) +
-  scale_x_discrete(labels = c("Low", "High School Or College", "Bachelors", "Graduate")) +
-  labs(y = 'Percentage\nof\nParticipants', 
-       title = "Percentage Distribution of Participants' Education Level", 
-       subtitle ='With respect to having kids or not', 
-       fill ='Have Kids?') +
-  theme(axis.title.y = element_text(angle = 0), 
-        axis.ticks.x = element_blank(),
+#### Restaurants
+
+Animation was also applied to see how the visitorship has grown over the months.
+
+The data was transformed slightly via mutate function.
+
+```{r}
+merged_rest_ani <- merged_rest_tm %>% 
+  mutate(Year = parse_number(Yr_Month)) %>% 
+  arrange(desc(Yr_Month))
+```
+
+The chart was plotted via [*gganimate*](https://gganimate.com/) package.
+
+```{r fig.height=7, fig.width=10}
+ggplot(data = merged_rest_ani, aes(x = fct_infreq(venueId))) +
+  geom_bar(stat="count", aes(fill=venueId))+
+  labs(title = "Restuarants' visitorship from Mar 2022 to May 2023",
+  x = 'Venue ID',
+  y = 'Count') +
+  scale_y_continuous(breaks = seq(0,40000, by = 5000)) +
+  theme(axis.title.y = element_text(angle = 0),
         panel.background = element_blank(), 
-        axis.line = element_line(color = 'grey'))
+        axis.line = element_line(color= 'grey')) +
+  transition_time(-Year) +
+  ease_aes('linear')
+```
+As shown, the growth of the restaurants' visitorship can now be visualized better with animation. Other than the obvious restaurant leader (Restaurant 1801) leading all the way, there are some other interesting observations seen.
+
+For example, we can now see that,
+
+* Restaurant 897 (6th position) was initially very close to Restaurant 448 (5th position), however Restaurant 448's business was heading up faster as time goes by. 
+  
+* Also, Restaurant 895 (7th position) caught up to Restaurant 897 towards the end of the timeframe too.
+
+* Restaurant 1802 and 1804 were neck-to-neck pretty much all the way in the analyzed timeframe.
 
 
+#### Pubs
+Similar application was done for Pubs too, to see how the visitorship has grown over the months.
+
+The data was transformed slightly via mutate function.
+
+```{r}
+merged_pub_ani <- merged_pub_tm %>% 
+  mutate(Year = parse_number(Yr_Month)) %>% 
+  arrange(desc(Yr_Month))
+```
+
+```{r}
+ggplot(data = merged_pub_ani, aes(x = fct_infreq(venueId))) +
+  geom_bar(stat="count", aes(fill=venueId))+
+  labs(title = "Pubs' visitorship from Mar 2022 to May 2023",
+  x = 'Venue ID',
+  y = 'Count') +
+  scale_y_continuous(breaks = seq(0,40000, by = 5000)) +
+  theme(axis.title.y = element_text(angle = 0), 
+        #axis.ticks.x = element_blank(),
+        panel.background = element_blank(), 
+        axis.line = element_line(color= 'grey')) +
+  transition_time(-Year) +
+  ease_aes('linear')
+```
+As shown, the growth of the pubs' visitorship can now be visualized better with animation. Other than the obvious pubs leader (Pub 1344 and 1342) growing at a much faster pace than the rest and leading all the way, we can also see that Pub 1800, 1798 and 1343 (3rd, 4th and 5th position) were having very similar visitorships through the timeline.
 
 
+### Conclusion
 
+From the visualization, we can tell which are are the Restaurants and Pubs that are doing better or worse, with respect to their total volume and growth rate.
 
+Prosperous Business:
 
+* Restaurant 1801 (1st)
+* Restaurant 1449 (2nd)
+* Pub 1344 (1st)
+* Pub 1342 (2nd)
+  
+Struggling Business:
 
+* Restaurant 1346 (19th)
+* Restaurant 1349 (20th; Last)
+* Pub 444 (12th; Last)
+  
 
-
-
-
-
+More can be explored if we merge more datasets to find out any other possible underlying rationales to their performance.
