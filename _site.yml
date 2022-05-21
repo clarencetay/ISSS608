@@ -28,7 +28,8 @@ navbar:
       menu:
         - text: "In-Class Exercise 4"
           href: ic_ex/ic_ex4.html
-          
+        - text: "In-Class Exercise 6"
+          href: ic_ex/ic_ex6.html          
     - text: "DataViz Makeover"
       menu:
         - text: "DataViz Makeover 1"
