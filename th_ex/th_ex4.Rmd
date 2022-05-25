@@ -1,0 +1,485 @@
+---
+title: "Take-home Exercise 4"
+description: |
+  Putting Visual Analytics into Practical Use
+author:
+  - name: Clarence Tay 
+    url: https://www.linkedin.com/in/clarencetay/
+    affiliation: Singapore Management University - MITB
+    affiliation_url: https://scis.smu.edu.sg/master-it-business
+date: "May 22, 2022"
+#date: "`r Sys.Date()`"
+output: distill::distill_article
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, 
+                      eval = TRUE, 
+                      warning = FALSE, 
+                      message = FALSE)
+```
+
+# Overview
+
+In this take-home exercise, I will be attempting to reveal the daily routines of two selected participants of the city of Engagement, Ohio USA.
+
+# Getting Started
+
+Before I get started, it is important for us to ensure that the required R packages have been installed. If yes, we will load the R packages. If they have yet to be installed, I will install the R packages and load them onto R environment.
+
+The chunk code below will do the trick.
+('tidyverse','patchwork','lubridate','gridExtra', 'knitr','reshape','clock','tibble')
+
+```{r echo = TRUE}
+packages = c('tidyverse','patchwork','lubridate','reshape','clock','tibble')
+
+for(p in packages){
+  if(!require(p, character.only = T)){
+    install.packages(p)
+    }
+  library(p, character.only = T)
+  }
+```
+
+# Importing Data
+
+The code chunk below imports *ParticipantStatusLogs1.csv* from the data folder, into R by using [`read_csv()`](https://readr.tidyverse.org/reference/read_delim.html) of [**readr**](https://readr.tidyverse.org/) and save it as an tibble dataframe called *participant_log1*.
+
+This imported dataset is just 1 of the 72 ParticipantStatusLogs[n].csv that records all the 1000+ participants across a 15-month period.
+
+```{r eval=FALSE}
+participant_log1 <- read_csv("data/ParticipantStatusLogs1.csv")
+```
+
+```{r echo=FALSE, eval=FALSE}
+table(part0$currentMode)
+```
+
+```{r echo=FALSE, eval=FALSE}
+table(part0$hungerStatus)
+```
+
+```{r echo=FALSE, eval=FALSE}
+table(part0$sleepStatus)
+```
+
+# Setting up the data for success
+
+In this analysis, we are going to target 2 different participants for comparison, hence 2 random particpants ID were chosen.
+
+Also, to make the visual analysis slightly more comprehensive, we will look at 2 different dates too, namely a weekday and a weekend.
+
+
+```{r}
+date_of_interest_1 <- '2022-03-02'
+date_of_interest_2 <- '2022-03-05'
+participant_A <- 234
+participant_B <- 333
+  
+```
+
+
+## Cleaning and Filtering the data
+
+Before we can produce any visualization, some data wrangling is required and we will be using the [`mutate`](https://dplyr.tidyverse.org/reference/mutate.html) function to help us with that.
+
+Here, the timestamp in the imported *participant_log1* was not imported in the right format (datetime), hence would required to be converted and extracted with `date()` and `hour()` of the [`lubridate`](https://lubridate.tidyverse.org/) package.
+
+The [`filter()`](https://dplyr.tidyverse.org/reference/filter.html) function [`dplyr`](https://dplyr.tidyverse.org/index.html) was used to cherry pick the targeted particpants for this analysis.
+
+4 different sets of cleaned data was produced to help us with our further analysis
+
+* partA_1 <- Participant A with Date of Interest #1 (weekday)
+* partB_1 <- Participant B with Date of Interest #1 (weekday)
+* partA_2 <- Participant A with Date of Interest #2 (weekend)
+* partB_2 <- Participant B with Date of Interest #2 (weekend)
+
+```{r eval=FALSE}
+# Participant A with Date of Interest #1 (weekday)
+partA_1 <- participant_log1 %>%
+    mutate(date = date(timestamp),
+         time = (hour(timestamp)*60+minute(timestamp))) %>% 
+  filter(participantId == participant_A,
+         date == date_of_interest_1) %>% 
+  select(date, time, currentMode, hungerStatus, sleepStatus)
+
+# Participant B with Date of Interest #1 (weekday)
+partB_1 <- participant_log1 %>%
+    mutate(date = date(timestamp),
+         time = (hour(timestamp)*60+minute(timestamp))) %>% 
+  filter(participantId == participant_B,
+         date == date_of_interest_1) %>% 
+  select(date, time, currentMode, hungerStatus, sleepStatus)
+
+# Participant A with Date of Interest #2 (weekend)
+partA_2 <- participant_log1 %>%
+    mutate(date = date(timestamp),
+         time = (hour(timestamp)*60+minute(timestamp))) %>% 
+  filter(participantId == participant_A,
+         date == date_of_interest_2) %>% 
+  select(date, time, currentMode, hungerStatus, sleepStatus)
+
+# Participant B with Date of Interest #2 (weekend)
+partB_2 <- participant_log1 %>%
+    mutate(date = date(timestamp),
+         time = (hour(timestamp)*60+minute(timestamp))) %>% 
+  filter(participantId == participant_B,
+         date == date_of_interest_2) %>% 
+  select(date, time, currentMode, hungerStatus, sleepStatus)
+```
+
+## Exporting the large ParticipantsStatusLogs.csv into RDS format
+
+As the *ParticipantsStatusLogs1.csv* was pretty big in size at around 230 MB, it is not possible for us to upload this to Github.
+
+Hence, we will be exporting the cleaned and filtered datasets (done in previous step) instead and used that as our reference import files for the subsequent analysis.
+
+The code below will write (export) the files into a RDS format (native to R) to keep the files' size small and managable.
+
+```{r echo=TRUE, eval= FALSE}
+write_rds(partA_1, "data/rds/partA_1.rds")
+write_rds(partB_1, "data/rds/partB_1.rds")
+write_rds(partA_2, "data/rds/partA_2.rds")
+write_rds(partB_2, "data/rds/partB_2.rds")
+```
+
+The exported RDS files will be imported again (as the original *ParticipantsStatusLogs1.csv* will not be imported and stored in this R project/GitHub)
+
+```{r echo=TRUE, eval= TRUE}
+partA_1 <- read_rds("data/rds/partA_1.rds")
+partB_1 <- read_rds("data/rds/partB_1.rds")
+partA_2 <- read_rds("data/rds/partA_2.rds")
+partB_2 <- read_rds("data/rds/partB_2.rds")
+```
+
+## Reshaping the datasets for usage
+
+In our next step, we will need to re-shape the datasets in order to allow us to plot the timeline of the targeted participants.
+
+[`dcast`](https://www.rdocumentation.org/packages/maditr/versions/0.8.3/topics/dcast) of the [`reshape2`](https://www.rdocumentation.org/packages/reshape2/versions/1.4.4) package was used to widen the dataframe, with the intent to extract all the unique values of the respective columns in the datasets, into new column headers.
+
+Columns to have their unique values extracted
+
+* currentMode -> AtHome, Transport, AtWork, AtRestaurant, AtRecreation
+* hungerStatus -> BecomingHungry, Hungry, Starving, BecameFull, JustAte
+* sleepStatus -> PrepareToSleep, Sleeping, Awake
+
+
+```{r}
+# Participant A with Date of Interest #1 (weekday)
+partA_1_time <- partA_1 %>%
+  select(date, time)
+
+partA_1_mode <- partA_1 %>% 
+  reshape2::dcast(time~currentMode, value.var = "currentMode", fun.aggregate = length)
+
+partA_1_hunger <- partA_1 %>% 
+  reshape2::dcast(time~hungerStatus, value.var = "hungerStatus", fun.aggregate = length)
+
+partA_1_sleep <- partA_1 %>% 
+  reshape2::dcast(time~sleepStatus, value.var = "sleepStatus", fun.aggregate = length)
+
+merged_df_A_1 <- merge(x = partA_1_time, y = partA_1_mode, by = "time", all.x = TRUE)
+merged_df_A_1 <- merge(x = merged_df_A_1, y = partA_1_hunger, by = "time", all.x = TRUE)
+merged_df_A_1 <- merge(x = merged_df_A_1, y = partA_1_sleep, by = "time", all.x = TRUE)
+
+# Participant B with Date of Interest #1 (weekday)
+partB_1_time <- partB_1 %>%
+  select(date, time)
+
+partB_1_mode <- partB_1 %>% 
+  reshape2::dcast(time~currentMode, value.var = "currentMode", fun.aggregate = length)
+
+partB_1_hunger <- partB_1 %>% 
+  reshape2::dcast(time~hungerStatus, value.var = "hungerStatus", fun.aggregate = length)
+
+partB_1_sleep <- partB_1 %>% 
+  reshape2::dcast(time~sleepStatus, value.var = "sleepStatus", fun.aggregate = length)
+
+merged_df_B_1 <- merge(x = partB_1_time, y = partB_1_mode, by = "time", all.x = TRUE)
+merged_df_B_1 <- merge(x = merged_df_B_1, y = partB_1_hunger, by = "time", all.x = TRUE)
+merged_df_B_1 <- merge(x = merged_df_B_1, y = partB_1_sleep, by = "time", all.x = TRUE)
+
+###########
+# Participant A with Date of Interest #2 (weekend)
+partA_2_time <- partA_2 %>%
+  select(date, time)
+
+partA_2_mode <- partA_2 %>% 
+  reshape2::dcast(time~currentMode, value.var = "currentMode", fun.aggregate = length)
+
+partA_2_hunger <- partA_2 %>% 
+  reshape2::dcast(time~hungerStatus, value.var = "hungerStatus", fun.aggregate = length)
+
+partA_2_sleep <- partA_2 %>% 
+  reshape2::dcast(time~sleepStatus, value.var = "sleepStatus", fun.aggregate = length)
+
+merged_df_A_2 <- merge(x = partA_2_time, y = partA_2_mode, by = "time", all.x = TRUE)
+merged_df_A_2 <- merge(x = merged_df_A_2, y = partA_2_hunger, by = "time", all.x = TRUE)
+merged_df_A_2 <- merge(x = merged_df_A_2, y = partA_2_sleep, by = "time", all.x = TRUE)
+
+# Participant B with Date of Interest #2 (weekend)
+partB_2_time <- partB_2 %>%
+  select(date, time)
+
+partB_2_mode <- partB_2 %>% 
+  reshape2::dcast(time~currentMode, value.var = "currentMode", fun.aggregate = length)
+
+partB_2_hunger <- partB_2 %>% 
+  reshape2::dcast(time~hungerStatus, value.var = "hungerStatus", fun.aggregate = length)
+
+partB_2_sleep <- partB_2 %>% 
+  reshape2::dcast(time~sleepStatus, value.var = "sleepStatus", fun.aggregate = length)
+
+merged_df_B_2 <- merge(x = partB_2_time, y = partB_2_mode, by = "time", all.x = TRUE)
+merged_df_B_2 <- merge(x = merged_df_B_2, y = partB_2_hunger, by = "time", all.x = TRUE)
+merged_df_B_2 <- merge(x = merged_df_B_2, y = partB_2_sleep, by = "time", all.x = TRUE)
+
+```
+
+Each of these unique values-to-column-headers values were assigned to a few separate dataframes.
+After creating the respective new dataframes for each scenario, they are merged into 1 single dataframe, respective of their participant ID and date combination.
+
+At the end of it, a total of 13 new columns (AtHome, Transport and etc) would be expanded into the new dataset, with a tagging of either 0 (False) or 1(True) in their respective row cells that would be indicative of the participants' status.
+
+
+## Create dummy column headers
+
+This section of code chunk was an after-thought, which was conceived after finding out that not all participants have the same status.
+Example, some participants does not have a "Starving" status or "PrepareToSleep" status.
+
+Hence, in the following code chunk, dummy column headers will be created if they do not exist after the `dcast` step in the previous section.
+
+```{r}
+cols <- c(Transport = NA_real_,
+          AtHome = NA_real_,
+          AtRecreation = NA_real_,
+          AtRestaurant = NA_real_,
+          AtWork = NA_real_,
+          BecomingHungry = NA_real_,
+          Hungry = NA_real_,
+          Starving = NA_real_,
+          BecameFull = NA_real_,
+          JustAte = NA_real_,
+          Sleeping = NA_real_,
+          Awake = NA_real_,
+          PrepareToSleep = NA_real_)
+
+merged_df_A_1 <- merged_df_A_1 %>% 
+  add_column(!!!cols[!names(cols) %in% names(.)]) %>% 
+  mutate_all(funs(ifelse(is.na(.), 0, .)))
+
+merged_df_B_1 <- merged_df_B_1 %>% 
+  add_column(!!!cols[!names(cols) %in% names(.)]) %>% 
+  mutate_all(funs(ifelse(is.na(.), 0, .)))
+
+merged_df_A_2 <- merged_df_A_2 %>% 
+  add_column(!!!cols[!names(cols) %in% names(.)]) %>% 
+  mutate_all(funs(ifelse(is.na(.), 0, .)))
+
+merged_df_B_2 <- merged_df_B_2 %>% 
+  add_column(!!!cols[!names(cols) %in% names(.)]) %>% 
+  mutate_all(funs(ifelse(is.na(.), 0, .)))
+
+```
+
+## Pivot this table, pivot that table
+
+In the final data wrangling steps, we will be pivoting the datasets with [`pivot_longer`](https://tidyr.tidyverse.org/reference/pivot_longer.html) of the [`tidyr`](https://tidyr.tidyverse.org/index.html) package, which was imported as part of [`tidyverse`](https://www.tidyverse.org/) library.
+
+`pivot_longer` essentially "lengthens" the data, increasing the number of rows and decreasing the number of columns.
+
+```{r}
+pivot_tbl_A_1 <- merged_df_A_1 %>%
+pivot_longer(cols = c(Transport,AtHome,AtRecreation,AtRestaurant,AtWork,
+                      BecomingHungry,Hungry,Starving,BecameFull,JustAte,
+                      Sleeping,Awake,PrepareToSleep), 
+             names_to = "Activities",
+             values_to = "Statuses")
+
+pivot_tbl_B_1 <- merged_df_B_1 %>%
+  pivot_longer(cols = c(Transport,AtHome,AtRecreation,AtRestaurant,AtWork,
+                        BecomingHungry,Hungry,Starving,BecameFull,JustAte,
+                        Sleeping,Awake,PrepareToSleep), 
+             names_to = "Activities",
+             values_to = "Statuses")
+
+pivot_tbl_A_2 <- merged_df_A_2 %>%
+pivot_longer(cols = c(Transport,AtHome,AtRecreation,AtRestaurant,AtWork,
+                      BecomingHungry,Hungry,Starving,BecameFull,JustAte,
+                      Sleeping,Awake,PrepareToSleep), 
+             names_to = "Activities",
+             values_to = "Statuses")
+
+pivot_tbl_B_2 <- merged_df_B_2 %>%
+  pivot_longer(cols = c(Transport,AtHome,AtRecreation,AtRestaurant,AtWork,
+                        BecomingHungry,Hungry,Starving,BecameFull,JustAte,
+                        Sleeping,Awake,PrepareToSleep), 
+             names_to = "Activities",
+             values_to = "Statuses")
+```
+
+
+## Plot this chart, plot that chart
+
+In this section, we will be plotting the progression chart for the participants of the selected dates.
+
+Customization made:
+
+* Re-ordering the Activities with respect to my desired order,
+  * Applying [fct_relevel](https://forcats.tidyverse.org/reference/fct_relevel.html) within the [`mutate`](https://dplyr.tidyverse.org/reference/mutate.html) function
+* Using [geom_raster](https://ggplot2.tidyverse.org/reference/geom_tile.html) to plot the charts,
+* Using [scale_fill_manual](https://www.rdocumentation.org/packages/ggplot2/versions/2.2.1/topics/scale_manual) to determine custom colours for the fill,
+* Adjusted y-axis tick intervals,
+  * Setting the intervals with [`scale_y_continuous`](https://ggplot2.tidyverse.org/reference/scale_continuous.html)
+* Added second y-axis on the right for easier referencing,
+  * Setting [`sec_axis`](https://ggplot2.tidyverse.org/reference/sec_axis.html) with [`scale_y_continuous`](https://ggplot2.tidyverse.org/reference/scale_continuous.html)
+* Displaying the data in percentage,
+  * Deploying [`scales::percent`](https://scales.r-lib.org/) in [`scale_y_continuous`](https://ggplot2.tidyverse.org/reference/scale_continuous.html)
+* Added title, subtitle, x-axis and y-axis,
+  * Using [`labs`](https://www.rdocumentation.org/packages/ggplot2/versions/3.3.5/topics/labs)
+* Removed background colour and axis ticks
+  * Use of [`theme`](https://www.rdocumentation.org/packages/ggplot2/versions/3.3.5/topics/theme)
+
+```{r}
+pA1 <- pivot_tbl_A_1 %>%
+        mutate(`Activities` = fct_relevel(Activities,
+                                        "AtHome","Transport","AtWork","AtRestaurant","AtRecreation",
+                                        "JustAte","BecameFull","BecomingHungry","Hungry","Starving",
+                                        "Sleeping","Awake","PrepareToSleep")) %>%
+        
+        ggplot(aes(time, Activities, fill = as.factor(Statuses))) +
+        geom_raster() +
+        scale_fill_manual(values =  c("white","salmon")) +
+        theme(legend.position = "none",
+              axis.title.y = element_text(angle = 0),
+              axis.text = element_text(),
+              axis.ticks = element_blank(),
+              panel.background = element_blank(),
+              axis.line = element_line(color = 'grey'),
+              panel.grid.minor.y = element_line(size = 0.2, colour = "grey70")) +
+        labs(x = 'Time (minutes)',
+             y = 'Activities',
+             title = paste("Routine of selected Participant",participant_A), 
+             subtitle = paste('Date :', date_of_interest_1))
+
+pA1
+```
+With that, the same code chunks (with the input dataframes varied) was applied for the other 3 charts that we are plotting.
+Scroll down to the bottom please.
+
+```{r}
+pB1 <- pivot_tbl_B_1 %>%
+        mutate(`Activities` = fct_relevel(Activities,
+                                        "AtHome","Transport","AtWork","AtRestaurant","AtRecreation",
+                                        "JustAte","BecameFull","BecomingHungry","Hungry","Starving",
+                                        "Sleeping","Awake","PrepareToSleep")) %>%
+        
+        ggplot(aes(time, Activities, fill = as.factor(Statuses))) +
+        geom_raster() +
+        scale_fill_manual(values =  c("white","blue")) +
+        theme(legend.position = "none",
+              axis.title.y = element_text(angle = 0),
+              axis.text = element_text(),
+              axis.ticks = element_blank(),
+              panel.background = element_blank(),
+              axis.line = element_line(color = 'grey'),
+              panel.grid.minor.y = element_line(size = 0.5, colour = "grey70")) +
+        labs(x = 'Time (minutes)',
+             y = 'Activities',
+             title = paste("Routine of selected Participant",participant_B), 
+             subtitle = paste('Date :', date_of_interest_1))
+
+pB1
+```
+
+
+```{r}
+pA2 <- pivot_tbl_A_2 %>%
+        mutate(`Activities` = fct_relevel(Activities,
+                                        "AtHome","Transport","AtWork","AtRestaurant","AtRecreation",
+                                        "JustAte","BecameFull","BecomingHungry","Hungry","Starving",
+                                        "Sleeping","Awake","PrepareToSleep")) %>%
+        
+        ggplot(aes(time, Activities, fill = as.factor(Statuses))) +
+        geom_raster() +
+        scale_fill_manual(values =  c("white","salmon")) +
+        theme(legend.position = "none",
+              axis.title.y = element_text(angle = 0),
+              axis.text = element_text(),
+              axis.ticks = element_blank(),
+              panel.background = element_blank(),
+              axis.line = element_line(color = 'grey'),
+              panel.grid.minor.y = element_line(size = 0.5, colour = "grey70")) +
+        labs(x = 'Time (minutes)',
+             y = 'Activities',
+             title = paste("Routine of selected Participant",participant_A), 
+             subtitle = paste('Date :', date_of_interest_2))
+
+pA2
+```
+
+
+```{r}
+pB2 <- pivot_tbl_B_2 %>%
+        mutate(`Activities` = fct_relevel(Activities,
+                                        "AtHome","Transport","AtWork","AtRestaurant","AtRecreation",
+                                        "JustAte","BecameFull","BecomingHungry","Hungry","Starving",
+                                        "Sleeping","Awake","PrepareToSleep")) %>%
+        
+        ggplot(aes(time, Activities, fill = as.factor(Statuses))) +
+        geom_raster() +
+        scale_fill_manual(values =  c("white","blue")) +
+        theme(legend.position = "none",
+              axis.title.y = element_text(angle = 0),
+              axis.text = element_text(),
+              axis.ticks = element_blank(),
+              panel.background = element_blank(),
+              axis.line = element_line(color = 'grey'),
+              panel.grid.minor.y = element_line(size = 0.5, colour = "grey70")) +
+        labs(x = 'Time (minutes)',
+             y = 'Activities',
+             title = paste("Routine of selected Participant",participant_B), 
+             subtitle = paste('Date :', date_of_interest_2))
+
+pB2
+```
+
+## Presenting my patchwork...
+
+Lastly, I am using the [patchwork](https://patchwork.data-imaginist.com/) package to stich all the 4 charts together for easier viewing and comparison.
+
+```{r fig.height=10, fig.width=20}
+((pA1 / pA2) | (pB1 / pB2)) +
+plot_annotation(tag_levels = 'I')
+```
+
+### Observations:
+
+It is quite clear that these 2 participants are having a largely different routine for their weekday and weekend.
+
+Comparing Chart I (Participant 234; Weekday) and Chart III (Participant 333; Weekday),
+
+* Participant 234 tends to get hungry more than Participant 333,
+  * That also leads to Participant 234 having 1 more meal than Participant 333 within the 24 hours, as indicated by the change of "Starving/Hungry" status to "JustAte" status,
+    * Notice the "staircase" raster tiles in the charts
+* Both participants had their lunch during mid-day, with Participant 234 having a earlier lunch compared to Participant 333 
+* Participant 234 went to the Restaurant for dinner while Participant 333 settled his/her dinner only went to Restaurants for the lunch (not for their breakfast, dinner or supper)
+* Participant 333 does not seem to have a routine to prepare for sleep, unlike Participant 234
+  * Participant 234 seems to prepare for sleep while on Transport (will be interesting to know what is like to prepare for sleep while on transport)
+* Participant 333 does seem to go to sleep while starving, unlike Participant 234
+* Participant 234 tend to spend less time at Home more time for Recreation compared to Participant 333
+  * Participant 234 also spent more time for Recreation compared to Participant 333
+
+Next would be to compare the participants' routine on a weekend.
+Right off the bat, it is very obvious that weekend routine is much different from their weekdays' counterpart.
+
+Comparing Chart II (Participant 234; weekend) and Chart IV (Participant 333; weekend),
+
+* Participant 333 spent his whole weekend at home, except for the period where he/she travelled out to a restaurant for mid-day meal
+* Likewise, Participant 234 seems to spent bulk of his/her time outdoors instead of staying home like Participant 333
+  * Multiple trips were also made during the weekend to travel to-and-fro his/her home to his/her recreational place
+    * Also, it seems like there is some extensive travelling by foot (assumption) from the transport location to the recreational location as there was a block of varying size that was before and after the reacreational activity
+* Similar to their weekdays' pattern, Participant 234 is still having 1 more meal compared to Participant 333
+
+In conclusion, it seems like Participant 234 is a much more active individual, especially for his/her recreational activity, compared to Participant 333 who typically do not eat dinner and spent practically whole weekend at home.
