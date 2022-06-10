@@ -1,0 +1,52 @@
+---
+title: "Visual Analytics by Clarence Tay"
+image: "site_images/1590661103690.jpg"
+description: |
+  Welcome to my humble website. No food or drinks are served.
+
+links:
+- label: LinkedIn
+  url: "https://www.linkedin.com/in/clarencetay/"
+- label: Tableau
+  url: "https://public.tableau.com/app/profile/clarence.tay"
+- label: Email
+  url: "clarencetay.2021@mitb.smu.edu.sg"
+  
+output:
+  postcards::trestles
+
+site: distill::distill_website
+---
+
+## Bio
+
+Clarence is (kinda) halfway through his postgraduate studies (Master of IT in Business - Analytics)
+at Singapore Management University.
+
+Having spent more than a decade in the petrochemical industry, 
+he is keen and looking forward to venture into the data analytics/science territories.
+
+
+## Education
+
+**Singapore Management University** | Singapore
+
+Master of IT in Business (Analytics Track) | August 2021 till date
+
+**National University of Singapore** | Singapore
+
+Bachelor of Technology, Chemical Engineering | August 2009 - August 2014
+
+## Experience
+
+**Ministry of Health** | Data Analytics Intern | January 2022 - June 2022
+
+**ExxonMobil** | Chemical Engineer / Process Technician | December 2007 - April 2021
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+# Learn more about creating websites with Distill at:
+# https://rstudio.github.io/distill/website.html
+
+```

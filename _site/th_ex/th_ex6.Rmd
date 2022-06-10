@@ -1,0 +1,601 @@
+---
+title: "Take-home Exercise 6"
+description: |
+  Putting Visual Analytics into Practical Use
+author:
+  - name: Clarence Tay 
+    url: https://www.linkedin.com/in/clarencetay/
+    affiliation: Singapore Management University - MITB
+    affiliation_url: https://scis.smu.edu.sg/master-it-business
+date: "`r Sys.Date()`"
+output: distill::distill_article
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, 
+                      eval = TRUE, 
+                      warning = FALSE, 
+                      message = FALSE)
+```
+
+# Overview
+
+In this take-home exercise, I will be attempting to explore for patterns in the social networks within the city of Engagement, Ohio USA.
+
+<br>
+
+# Where is the library?
+
+Before I get started, it is important for us to ensure that the required R packages have been installed. If yes, we will load the R packages. If they have yet to be installed, I will install the R packages and load them onto R environment.
+
+```{r echo = TRUE}
+packages = c('igraph', 'tidygraph',
+             'ggraph', 'visNetwork',
+             'lubridate', 'clock',
+             'tidyverse', 'ggmap', 'knitr')
+
+for(p in packages){
+  if(!require(p, character.only = T)){
+    install.packages(p)
+    }
+  library(p, character.only = T)
+  }
+```
+
+<br>
+
+# Let's bring in the DATA
+
+The code chunk below imports *SocialNetwork.csv* and *Participants.csv* from the data folder, into R by using [`read_csv()`](https://readr.tidyverse.org/reference/read_delim.html) of [**readr**](https://readr.tidyverse.org/) and save them as tibble dataframes.
+
+```{r files_import, echo=FALSE, eval=FALSE}
+city_edges <- read_csv("data/SocialNetwork.csv")
+
+city_nodes <- read_csv("data/Participants.csv")
+```
+
+```{r echo=FALSE, eval=TRUE}
+city_nodes <- read_csv("data/Participants.csv")
+```
+
+```{r echo=FALSE, eval=FALSE}
+glimpse(city_edges)
+```
+
+<br>
+
+# Munging on the Raw Data
+
+## Transforming the Edges data
+
+The following steps were done to transform the data,
+
+* Converted timestamp to year-month format
+* Extracted the weekdays and allocate into a new Day column
+* Group the data by participants and Day
+* Create weightage for all the respective node-to-node interactions
+* Filter to ensure only unique participants pair interactions
+
+```{r city_edges_agg_all, echo=TRUE, eval= FALSE}
+city_edges_agg_all <- city_edges %>%
+  mutate(Yr_Mth = format(as.Date(timestamp), "%Y-%m")) %>% 
+  mutate(Day = wday(timestamp,
+                    label = TRUE,
+                    abbr = FALSE)) %>% 
+  group_by(participantIdFrom, participantIdTo, Day) %>% 
+  summarise(Weight = n(), 
+            .groups = "keep") %>%
+  filter(participantIdFrom != participantIdTo)%>%
+  filter(Weight > 0) %>%
+  ungroup()
+```
+
+Notice the `filter(Weight > 0)` in the last part of the above code chunk?
+
+This essentially does not really filter out anything.
+
+However, we will make use of this to gauge where to cut off the data for analysis, as using the whole dataset prove to be "too much info" for any fruitful analysis. In fact, in my trial-and-error for the charts, using all the data will result in a very messy (cluttered) social network graph.
+
+```{r echo=FALSE, eval= FALSE}
+write_rds(city_edges_agg_all, "data/rds/city_edges_agg_all_test.rds")
+```
+
+```{r echo=FALSE, eval= TRUE}
+city_edges_agg_all <- read_rds("data/rds/city_edges_agg_all_test.rds")
+```
+
+With the `summary()` function on the `Weight` data column, we are able to view the interquantile stats.
+
+```{r}
+summary(city_edges_agg_all$Weight)
+```
+
+As we are keen to find out more on the participants whom have high edge weights, we will filter for edges with weights of at least 8 and above (3rd quantile onwards).
+
+```{r echo=TRUE, eval= FALSE}
+city_edges_agg_all <- city_edges %>%
+  mutate(Yr_Mth = format(as.Date(timestamp), "%Y-%m")) %>% 
+  mutate(Day = wday(timestamp,
+                    label = TRUE,
+                    abbr = FALSE)) %>% 
+  group_by(participantIdFrom, participantIdTo, Day) %>% 
+  summarise(Weight = n(), .groups = "keep") %>%
+  filter(participantIdFrom != participantIdTo)%>%
+  filter(Weight > 49) %>%
+  ungroup()
+```
+
+Trial runs were done with varying weight filters (starting from 65 in descending order) and we arrived at 50 as a good balance of data to showcase participants with relatively high connectivity to one another.
+
+<br>
+
+## Exporting the large SocialNetwork.csv into RDS format
+
+As the *SocialNetwork.csv* was pretty big in size at around 200 MB, it is not possible for us to upload this to Github.
+
+Hence, we will be exporting the cleaned and filtered dataset (done in previous step) instead and used that as our reference import file for the subsequent analysis.
+
+The code below will write (export) the file into a RDS format (native to R) to keep the file's size small and manageable.
+
+```{r echo=TRUE, eval= FALSE}
+write_rds(city_edges_agg_all, "data/rds/city_edges_agg_all.rds")
+```
+
+The exported RDS files will be imported again (as the original *SocialNetwork.csv* will not be imported and stored in this R project/GitHub)
+
+```{r echo=TRUE, eval= TRUE}
+city_edges_agg_all <- read_rds("data/rds/city_edges_agg_all.rds")
+```
+
+<br>
+
+## Further transformation of the data
+
+The following code chunk will be extracting the unique participants involved in the analysis after our previous step of edge weight filtering (above 49), via usage of these functions, [`stack()`](https://www.rdocumentation.org/packages/utils/versions/3.6.2/topics/stack) and [`unique()`](https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/unique).
+
+```{r}
+nodes_involved_all <- city_edges_agg_all %>% 
+  select(participantIdFrom, participantIdTo) %>% 
+  stack() %>%
+  mutate(participantId = (values)) %>% 
+  select(participantId) %>% 
+  arrange(participantId) %>%
+  unique()
+```
+
+The following code chunk will then merge (inner join) the participants dataset (`city_nodes` after importing) with the list of unique participants involved in this analysis (after filtering them based on edge weight). The output will provide a list of unique participants and their respective details.
+
+```{r}
+participants_nodes_all <- merge(x=city_nodes,y=nodes_involved_all,by="participantId") %>% 
+  mutate(participantId = as.character(participantId)) %>% 
+  rename(`Education Level` = educationLevel,
+         `Interest Group` = interestGroup,
+         `Have Kids` = haveKids,
+         `Household Size` = householdSize,
+         `Joviality` = joviality,
+         `Age` = age)
+```
+
+The next code chunk will create a tbl_graph object with the edges and nodes dataset that we have cleaned.
+
+```{r}
+network_graph_all <- graph_from_data_frame(city_edges_agg_all,
+                                           vertices = participants_nodes_all) %>% 
+  as_tbl_graph()
+
+network_graph_all
+```
+
+Next, we will [`activate()`](https://tidygraph.data-imaginist.com/reference/activate.html) the edges so that we can begin to use the weight for our analysis.
+
+```{r}
+network_graph_all %>%
+  activate(edges) %>%
+  arrange(desc(Weight))
+```
+
+<br>
+
+# Plotting the network graphs
+
+Here, we will start to plot all of our network graphs, in static and interactive formats.
+
+[`ggraph`](https://exts.ggplot2.tidyverse.org/ggraph.html) package will be used for the static graphs, while [`visNetwork`](https://cran.r-project.org/web/packages/visNetwork/index.html) will be used for the interactive graphs.
+
+<br>
+
+# Plotting static graphs - Network Graph with Degree Centrality focus
+
+Degree centrality is the simplest centrality measure to compute as it is essentially just counting the number of edges that each node has. If a participant has 10 social connections, then it will have a degree centrality of 10.
+
+While it is a good measure of how connected the participant is, it does not necessarily reflect the degree of importance of the participant in connecting other nodes.
+
+Nevertheless, it is a simple way to pick out nodes that MIGHT be important to the social network as usually nodes with high degree of edges tends to score well in other centrality tests. (no guarantees though!)
+
+In the code chunk below, the network graph is plotted with codes that will only highlight and label nodes with degree centrality above 60 (intent was to only focus on high degree nodes, instead of showing everything which can be quite confusing with all the colours)
+
+```{r centrality_degree, fig.height= 10, fig.width = 15}
+g1 <- ggraph(network_graph_all,
+       layout = "linear", 
+       circular = TRUE) +
+  geom_edge_arc(aes(width = Weight),
+                 alpha = 0.1) +
+  scale_edge_width(range = c(0.1, 2)) +
+  geom_node_point(aes(colour = ifelse(centrality_degree() > 60, `Education Level`, 'grey60'), 
+                      size = centrality_degree())) +
+  labs(title = "Network Graph by Education Level wrt Degree Centrality",
+       subtitle ='Layout: Linear and Circular',
+       size = 'Degree Centrality') +
+  theme_graph(base_family = 'Helvetica') +
+  scale_color_manual(name ='Education Level',
+                     values = c('Graduate'='green','Bachelors'='red','HighSchoolOrCollege'='cyan','Low'='pink'))
+  
+g1 + geom_node_label(aes(label=ifelse(centrality_degree() > 60, name, NA)),
+                     nudge_x = g1$data$x * .15, 
+                     nudge_y = g1$data$y * .15,
+                     repel = TRUE, 
+                     point.padding = NA, 
+                     box.padding = 0, 
+                     force = 0.1)
+```
+
+It is interesting to note that the participants with high degree centrality tends to be those with higher education level (Graduate, Bachelors and High School/College).
+
+My guess would be that people with higher education level has more socialization opportunities to build connections compared to people who did not receive higher education ('Low' education level)
+
+```{r}
+top_degree <- city_nodes %>% 
+  filter(participantId %in% c(157,195,216,488,503,529,540,563,573,623,624,648,698)) %>%  
+  arrange(by_group=interestGroup)
+
+kable(top_degree)
+```
+
+Taking a quick look at the table (with [`kable()`](https://bookdown.org/yihui/rmarkdown-cookbook/kable.html)) after filtering for the respective top degree centrality scoring participants, these characteristics were observed.
+
+* 9 out of 13 of them does not have kids.
+* They tend to be part of Interest Group B (3 pax) and C (4 pax) out of 12 participants.
+
+<br>
+
+# Plotting static graphs - Network Graph with Betweenness Centrality focus
+
+Betweenness centrality highlights which nodes are important in the flow of the network by measuring the importance of indivdual nodes by how critical are they in making the shortest path between 2 other nodes. 
+
+Example, if Participant A is in the shortest path between Participant B and C, it means that Participant A is critical to facilitate the flow (of information) between Participant B and C. Hence, if Participant A was not part of the path, that would mean the flow between Participant B and C would need to go through a longer network path.
+
+In the code chunk below, the network graph is plotted with codes that will only highlight and label nodes with betweenness centrality above 800 (intent was to only focus on high betweenness scoring nodes, instead of showing everything which can be quite confusing with all the colours).
+                     
+```{r centrality_betweenness, fig.height= 10, fig.width = 15}
+g2 <- ggraph(network_graph_all,
+       layout = "linear", 
+       circular = TRUE) +
+  geom_edge_arc(aes(width = Weight),
+                 alpha = 0.1) +
+  scale_edge_width(range = c(0.1, 2)) +
+  geom_node_point(aes(colour = ifelse(centrality_betweenness() > 800, `Education Level`, 'grey60'), 
+                      size = centrality_betweenness())) +
+  labs(title = "Network Graph by Education Level wrt Betweenness Centrality",
+       subtitle ='Layout: Linear and Circular',
+       size = 'Betweenness Centrality') +
+  theme_graph(base_family = 'Helvetica') +
+  scale_color_manual(name ='Education Level',
+                     values = c('Graduate'='green','Bachelors'='red','HighSchoolOrCollege'='cyan','Low'='pink'))
+
+g2 + geom_node_label(aes(label=ifelse(centrality_betweenness() > 800, name, NA)),
+                     nudge_x = g1$data$x * .15, 
+                     nudge_y = g1$data$y * .15,
+                     repel = TRUE, 
+                     point.padding = NA, 
+                     box.padding = 0, 
+                     force = 0.1)
+```
+
+It is interesting to note that the participants with higher betweenness centrality **also** tends to be those with higher education level (Graduate and Bachelors). However, in this case, participants of High School/College education level seems to tip over the ratio slightly compared to the other Education levels.
+
+```{r}
+top_betweenness <- city_nodes %>% 
+  filter(participantId %in% c(81,390,424,436,488,503,759,851,898,906,978,991)) %>%  
+  arrange(by_group=educationLevel)
+
+kable(top_betweenness)
+```
+Taking a quick look at the table (with [`kable()`](https://bookdown.org/yihui/rmarkdown-cookbook/kable.html)) after filtering for the respective top betweenness centrality scoring participants, these characteristics were observed.
+
+* For participants with 'High School/College' (and 1 'Low') education level, they do not have kids and lives alone.
+* For participants with 'Bachelors' and 'Graduate' education level, they are not single (lives in pair and/or with kids)
+* In general, no particular dominant age group or joviality level.
+* 1/3 of them are from Interest Group D.
+
+<br>
+
+# Plotting static graphs - Network Graph with Eigenvector Centrality focus
+
+Now that we have covered degree centrality and betweenness centrality analysis, next we will be looking at another centrality measurement, eigenvector centrality.
+
+Eigenvector centrality measures the node’s importance by taking into consideration of its neighbours' importance too.
+
+For example, a participant with 20 unpopular connections would have lower an eigenvector centrality than another participant who has 20 popular connections, hence implying the influential capability of the node within the network.
+
+In the code chunk below, the network graph is plotted with codes that will only highlight and label nodes with eigenvector centrality above 0.8 (intent was to only focus on high eigenvector scoring nodes, instead of showing everything which can be quite confusing with all the colours).
+
+```{r centrality_eigen, fig.height= 10, fig.width = 15}
+g3 <- ggraph(network_graph_all,
+       layout = "linear", 
+       circular = TRUE) +
+  geom_edge_arc(aes(width = Weight),
+                 alpha = 0.1) +
+  scale_edge_width(range = c(0.1, 2)) +
+  geom_node_point(aes(colour = ifelse(centrality_eigen() > 0.6, `Education Level`, 'grey60'), 
+                      size = centrality_eigen())) +
+  labs(title = "Network Graph by Education Level wrt Eigenvector Centrality",
+       subtitle ='Layout: Linear and Circular',
+       size = 'Eigenvector Centrality') +
+  theme_graph(base_family = 'Helvetica') +
+  scale_color_manual(name ='Education Level',
+                     values = c('Graduate'='green','Bachelors'='red','HighSchoolOrCollege'='cyan','Low'='pink'))
+
+g3 + geom_node_label(aes(label=ifelse(centrality_eigen() > 0.6, name, NA)),
+                     nudge_x = g1$data$x * .15, 
+                     nudge_y = g1$data$y * .15,
+                     repel = TRUE, 
+                     point.padding = NA, 
+                     box.padding = 0, 
+                     force = 0.1)
+```
+
+It is interesting to note that the participants with higher eigenvector centrality **also** tends to be those with higher education level (Graduate and Bachelors).
+
+```{r}
+top_eigenvector <- city_nodes %>% 
+  filter(participantId %in% c(157,216,277,312,529,540,563,573,620,624,648)) %>%  
+  arrange(by_group=householdSize)
+
+kable(top_eigenvector)
+```
+
+Taking a quick look at the table (with [`kable()`](https://bookdown.org/yihui/rmarkdown-cookbook/kable.html)) after filtering for the respective top betweenness centrality scoring participants, these characteristics were observed.
+
+* 6 out of 11 of them have kids and has a household size of 3.
+
+<br>
+
+```{r centrality_closeness, fig.height= 10, fig.width = 15, eval=F, echo=F}
+# With closeness centrality we again make use of the shortest paths between nodes. We measure the distance between two nodes as the length of the shortest path between them. Farness, for a given node, is the average distance from that node to all other nodes. Closeness is then the reciprocal of farness (1/farness).
+# 
+# g4 <- ggraph(network_graph_all,
+#        layout = "linear", 
+#        circular = TRUE) +
+#   geom_edge_arc(aes(width = Weight),
+#                  alpha = 0.1) +
+#   scale_edge_width(range = c(0.1, 2)) +
+#   geom_node_point(aes(colour = `Education Level`, 
+#                       size = centrality_closeness())) +
+#   labs(title = "Network Graph by Education Level") +
+#   theme_graph(base_family = 'Helvetica') +
+#   geom_node_label(aes(label=ifelse(centrality_closeness() > 0.99, name, NA)),
+#                      nudge_x = g1$data$x * .15, 
+#                      nudge_y = g1$data$y * .15,
+#                      repel = TRUE, 
+#                      point.padding = NA, 
+#                      box.padding = 0, 
+#                      force = 0.1)
+# g4
+```
+
+<br>
+
+# Plotting static graphs with different layout - Network Graph with Degree Centrality focus
+
+Here, we will plot the same network graph, but with a different layout setting ('nicely'), so that the visualization of the social circles can be enhanced.
+
+```{r fig.height= 10, fig.width = 15}
+set.seed(1234)
+
+g2a <- ggraph(network_graph_all,
+       layout = "nicely") +
+  geom_edge_arc(aes(width = Weight),
+                alpha = 0.1,
+                color = 'grey') +
+  scale_edge_width(range = c(0.1, 2)) +
+  geom_node_point(aes(colour = ifelse(centrality_betweenness() > 300, `Education Level`, 'grey60'), 
+                      size = centrality_betweenness())) +
+  labs(title = "Network Graph by Education Level wrt Betweenness Centrality",
+       subtitle ='Layout: nicely',
+       size = 'Betweenness Centrality') +
+  theme_graph(base_family = 'Helvetica') +
+  scale_color_manual(name ='Education Level',
+                     values = c('Graduate'='green','Bachelors'='red','HighSchoolOrCollege'='cyan','Low'='pink'))
+
+g2a + geom_node_label(aes(label=ifelse(centrality_betweenness() > 300, name, NA)),
+                     nudge_x = g1$data$x * .15, 
+                     nudge_y = g1$data$y * .15,
+                     repel = TRUE, 
+                     point.padding = NA, 
+                     box.padding = 0, 
+                     force = 0.1)
+```
+
+Here, we can actually see these how these important nodes played their part in connecting smaller social circles to one another, to create a larger social network ecosystem.
+
+<br>
+
+# Plotting static graphs with different layout - Network Graph with Eigenvector Centrality focus
+
+Here, we will plot the same network graph, but with a different layout setting ('nicely'), so that the visualization of the social circles can be enhanced.
+
+```{r fig.height= 10, fig.width = 15}
+set.seed(1234)
+
+g3a <- ggraph(network_graph_all,
+       layout = "nicely") +
+  geom_edge_arc(aes(width = Weight),
+                alpha = 0.1,
+                color = 'grey') +
+  scale_edge_width(range = c(0.1, 2)) +
+  geom_node_point(aes(colour = ifelse(centrality_eigen() > 0.6, `Education Level`, 'grey60'), 
+                      size = centrality_eigen())) +
+  labs(title = "Network Graph by Education Level wrt Eigenvector Centrality",
+       subtitle ='Layout: nicely',
+       size = 'Eigenvector Centrality') +
+  theme_graph(base_family = 'Helvetica') +
+  scale_color_manual(name ='Education Level',
+                     values = c('Graduate'='green','Bachelors'='red','HighSchoolOrCollege'='cyan','Low'='pink'))
+
+g3a + geom_node_label(aes(label=ifelse(centrality_eigen() > 0.6, name, NA)),
+                     nudge_x = g1$data$x * .15, 
+                     nudge_y = g1$data$y * .15,
+                     repel = TRUE, 
+                     point.padding = NA, 
+                     box.padding = 0, 
+                     force = 0.1)
+
+```
+
+It seems like all these high eigenvector scoring participants are from the same social circle. With that, I am guessing that within these group of participants are highly connected to one another within this social group, therefore, boosting their eigenvector scores tremendously.
+
+<br>
+
+# Preparation to plot interactive graphs
+
+The following steps were done to transform the data,
+
+* Converted timestamp to year-month format
+* Extracted the weekdays and allocate into a new Day column
+* Renaming the `participantIdFrom` and `participantIdTo` for subsequent usage of them in another code chunk
+* Group the data by participants and Day
+* Create weightage for all the respective node-to-node interactions
+* Filter to ensure only unique participants pair interactions
+
+```{r echo=TRUE, eval= FALSE}
+city_edges_agg_all_v2 <- city_edges %>%
+  mutate(Yr_Mth = format(as.Date(timestamp), "%Y-%m")) %>%
+  mutate(Day = wday(timestamp,
+                    label = TRUE,
+                    abbr = FALSE)) %>% 
+  rename(from = participantIdFrom, 
+         to = participantIdTo) %>% 
+  group_by(from, to, Day) %>% 
+  summarise(Weight = n(), 
+            .groups = "keep") %>%
+  filter(from != to)%>%
+  filter(Weight > 49) %>%
+  ungroup()
+```
+
+```{r echo=FALSE, eval= FALSE}
+write_rds(city_edges_agg_all_v2, "data/rds/city_edges_agg_all_v2.rds")
+```
+
+```{r echo=FALSE, eval= TRUE}
+city_edges_agg_all_v2 <- read_rds("data/rds/city_edges_agg_all_v2.rds")
+```
+
+<br>
+
+## Further transformation of the data
+
+The following code chunk will be extracting the unique participants involved in the analysis after our previous step of edge weight filtering (above 49), via usage of these functions, [`stack()`](https://www.rdocumentation.org/packages/utils/versions/3.6.2/topics/stack) and [`unique()`](https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/unique).
+
+```{r}
+nodes_involved_all_v2 <- city_edges_agg_all_v2 %>% 
+  select(from, to) %>% 
+  stack() %>%
+  mutate(participantId = (values)) %>% 
+  select(participantId) %>% 
+  arrange(participantId) %>%
+  unique()
+```
+
+The following code chunk will then merge (inner join) the participants dataset (`city_nodes` after importing) with the list of unique participants involved in this analysis (after filtering them based on edge weight). The output will provide a list of unique participants and their respective details.
+
+```{r}
+participants_nodes_all_v2 <- merge(x=city_nodes,y=nodes_involved_all_v2,by="participantId") %>% 
+  mutate(participantId = as.character(participantId)) %>%
+  rename(id = participantId,
+         group = educationLevel,
+         `Interest Group` = interestGroup,
+         `Have Kids` = haveKids,
+         `Household Size` = householdSize,
+         `Joviality` = joviality,
+         `Age` = age)
+```
+
+<br>
+
+# Plotting interactive graphs - Network Graph with Betweenness Centrality focus
+
+As mentioned earlier, [`visNetwork`](https://cran.r-project.org/web/packages/visNetwork/index.html) will be used to chart out an interactive network graph.
+
+With this new found interactivity, we can now select the participant (via ID) to locate their position in their respective social network.
+Also, we are able to filter for nodes by their group (in this case, set as education level).
+
+```{r fig.height= 8, fig.width = 12}
+visNetwork(participants_nodes_all_v2,
+           city_edges_agg_all_v2) %>%
+  visIgraphLayout(layout = "layout_nicely") %>%
+  visEdges(arrows = "to",
+           smooth = list(enabled = TRUE,
+                         type = "curvedCW")) %>% 
+  visOptions(highlightNearest = TRUE,
+             nodesIdSelection = list(enabled = TRUE),
+             selectedBy = list(variable = "group")) %>%
+  visLegend(main = "Education Level Legend",
+            position = "right") %>%
+  visEdges(arrows = "to", 
+           color = list(highlight="black")) %>% 
+  visLayout(randomSeed = 123)
+```
+
+<br>
+
+# Plotting interactive graphs - Network Graph with Betweenness Centrality focus
+
+For curiosity, I've attempted to plot another interactive network graph, but with Interest Group as the group instead.
+
+```{r}
+participants_nodes_all_v3 <- merge(x=city_nodes,y=nodes_involved_all_v2,by="participantId") %>% 
+  mutate(participantId = as.character(participantId)) %>%
+  rename(id = participantId,
+         group = interestGroup,
+         `Education Level` = educationLevel,
+         `Have Kids` = haveKids,
+         `Household Size` = householdSize,
+         `Joviality` = joviality,
+         `Age` = age)
+```
+
+With this new found interactivity, we can now select the participant (via ID) to locate their position in their respective social network.
+Also, we are able to filter for nodes by their group (in this case, set as interest group).
+
+```{r fig.height= 8, fig.width = 12}
+visNetwork(participants_nodes_all_v3,
+           city_edges_agg_all_v2) %>%
+  visIgraphLayout(layout = "layout_nicely") %>%
+  visEdges(arrows = "to",
+           smooth = list(enabled = TRUE,
+                         type = "curvedCW")) %>% 
+  visOptions(highlightNearest = TRUE,
+             nodesIdSelection = list(enabled = TRUE),
+             selectedBy = list(variable = "group")) %>%
+  visLegend(main = "Interest Group Legend",
+            position = "right") %>%
+  visEdges(arrows = "to",
+           color = list(highlight="black")) %>% 
+  visLayout(randomSeed = 123)
+```
+
+One interesting observation was that in those larger network circles, participants from Interest Group D and J seems to be critical in connecting the smaller social groups together, forming a larger social circle.
+
+<br>
+
+# Conclusion
+
+In summary, from the graphs plotted, my observations are,
+
+* Education level seems to be a factor in the participants' connectivity in social circles
+* Participants with kids tend to score slightly higher in the centrality measurement
+  * My guess is that the kids are like an extension of the participants' reach to other social circles where the participants (as parents) would have more opportunities to engage other parents in their kids' school activities and affairs
+* Certain interest groups tend to place influence on the participants' network
+
+More can be done to analyze additional details of the above observations so that the analysis result can be more holistic.

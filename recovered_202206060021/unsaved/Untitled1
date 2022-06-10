@@ -1,0 +1,178 @@
+---
+title: "Untitled"
+description: |
+  A new article created using the Distill format.
+author:
+  - name: Nora Jones 
+    url: https://example.com/norajones
+    affiliation: Spacely Sprockets
+    affiliation_url: https://example.com/spacelysprokets
+date: "`r Sys.Date()`"
+output: distill::distill_article
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+Distill is a publication format for scientific and technical writing, native to the web. 
+
+Learn more about using Distill for R Markdown at <https://rstudio.github.io/distill>.
+
+
+```{r}
+city_edges_agg_Apr22 <- city_edges %>%
+  mutate(Yr_Mth = format(as.Date(timestamp), "%Y-%m")) %>% 
+  filter(Yr_Mth %in% c("2022-04","2022-05","2022-06")) %>%
+  mutate(Day = wday(timestamp,
+                    label = TRUE,
+                    abbr = FALSE)) %>% 
+  group_by(participantIdFrom, participantIdTo, Day) %>% 
+  summarise(Weight = n(), .groups = "keep") %>%
+  filter(participantIdFrom != participantIdTo)%>%
+  filter(Weight > 12) %>%
+  ungroup()
+
+```
+
+```{r}
+summary(city_edges_agg_Apr22$Weight)
+```
+```{r}
+nodes_involved_Apr22 <- city_edges_agg_Apr22 %>% 
+  select(participantIdFrom, participantIdTo) %>% 
+  stack() %>%
+  mutate(participantId = (values)) %>% 
+  select(participantId) %>% 
+  arrange(participantId) %>%
+  unique()
+```
+  distinct(participantIdFrom,participantIdTo, .keep_all = TRUE) %>% 
+
+data.frame(participantId=unlist(,use.names = FALSE))
+
+
+  select(participantIdFrom, participantIdTo)
+  as.numeric(as.factor(sort(uni)))
+
+
+```{r}
+participants_nodes_Apr22 <- merge(x=city_nodes,y=nodes_involved_Apr22,by="participantId") %>% 
+  mutate(participantId = as.character(participantId))
+```
+
+```{r}
+network_graph_Apr22 <- graph_from_data_frame(city_edges_agg_Apr22,
+                                       vertices = participants_nodes_Apr22) %>% 
+  as_tbl_graph()
+
+network_graph_Apr22
+```
+
+```{r}
+network_graph_Apr22 %>%
+  activate(edges) %>%
+  arrange(desc(Weight))
+```
+
+```{r}
+ggraph(network_graph_Apr22) +
+  geom_edge_link() +
+  geom_node_point()
+```
+
+```{r}
+ggraph(network_graph_Apr22) + 
+  geom_edge_link() +
+  geom_node_point(aes(colour = educationLevel, 
+                      size = centrality_betweenness())) +
+  labs(title = "Network Graph by Education Level") +
+  theme_graph()
+```
+
+```{r}
+ggraph(network_graph_Apr22) + 
+  geom_edge_link() +
+  geom_node_point(aes(colour = educationLevel, 
+                      size = centrality_eigen())) +
+  labs(title = "Network Graph by Education Level") +
+  theme_graph()
+```
+
+```{r}
+ggraph(network_graph_Apr22) + 
+  geom_edge_link() +
+  geom_node_point(aes(colour = educationLevel, 
+                      size = centrality_closeness())) +
+  labs(title = "Network Graph by Education Level") +
+  theme_graph()
+```
+
+```{r}
+set_graph_style()
+
+g1<-ggraph(network_graph_Apr22, layout = 'nicely') + 
+  geom_edge_link() +
+  geom_node_point(aes(colour = educationLevel)) +
+  labs(title = "Network Graph by Education Level") +
+  theme_graph()
+
+g1 + facet_edges(~Day)
+```
+
+```{r}
+g <- ggraph(network_graph_Apr22, 
+            layout = "star") + 
+  geom_edge_link(aes()) +
+  geom_node_point(aes(colour = educationLevel, 
+                      size =0.1))
+g + theme_graph()
+```
+,"2022-05","2022-06"
+
+```{r}
+city_edges_agg_Apr22_v2 <- city_edges %>%
+  mutate(Yr_Mth = format(as.Date(timestamp), "%Y-%m")) %>% 
+  filter(Yr_Mth %in% c("2022-04","2022-05","2022-06")) %>%
+  mutate(Day = wday(timestamp,
+                    label = TRUE,
+                    abbr = FALSE)) %>% 
+  rename(from = participantIdFrom, to = participantIdTo) %>% 
+  mutate(from = from + 1,
+         to = to +1) %>% 
+  group_by(from, to, Day) %>% 
+  summarise(Weight = n(), .groups = "keep") %>%
+  filter(from != to)%>%
+  filter(Weight > 12) %>%
+  ungroup()
+
+```
+
+```{r}
+summary(city_edges_agg_Apr22_v2$Weight)
+```
+
+
+
+
+```{r}
+participants_nodes_Apr22_v2 <- participants_nodes_Apr22 %>%
+  mutate(participantId = as.numeric(participantId) + 1) %>% 
+  rename(group = educationLevel,
+         id = participantId)
+```
+
+```{r}
+visNetwork(participants_nodes_Apr22_v2,
+           city_edges_agg_Apr22_v2) %>%
+  visIgraphLayout(layout = "layout_with_fr") %>%
+  visEdges(arrows = "to",
+           smooth = list(enabled = TRUE,
+                         type = "curvedCW")) %>% 
+  visOptions(highlightNearest = TRUE,
+             nodesIdSelection = TRUE) %>%
+  visLegend() %>%
+  visLayout(randomSeed = 123)
+```
+
+

@@ -1,0 +1,452 @@
+---
+title: "Take-home Exercise 6"
+description: |
+  Putting Visual Analytics into Practical Use
+author:
+  - name: Clarence Tay 
+    url: https://www.linkedin.com/in/clarencetay/
+    affiliation: Singapore Management University - MITB
+    affiliation_url: https://scis.smu.edu.sg/master-it-business
+date: "`r Sys.Date()`"
+output: distill::distill_article
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, 
+                      eval = TRUE, 
+                      warning = FALSE, 
+                      message = FALSE)
+```
+
+# Overview
+
+In this take-home exercise, I will be attempting to explore for patterns in the social networks within the city of Engagement, Ohio USA.
+
+# Getting Started
+
+Before I get started, it is important for us to ensure that the required R packages have been installed. If yes, we will load the R packages. If they have yet to be installed, I will install the R packages and load them onto R environment.
+
+
+```{r echo = TRUE}
+packages = c('igraph', 'tidygraph',
+             'ggraph', 'visNetwork',
+             'lubridate', 'clock',
+             'tidyverse', 'ggmap', 'ggiraph')
+
+for(p in packages){
+  if(!require(p, character.only = T)){
+    install.packages(p)
+    }
+  library(p, character.only = T)
+  }
+```
+
+# Importing Data
+
+The code chunk below imports *SocialNetwork.csv* and *Participants.csv* from the data folder, into R by using [`read_csv()`](https://readr.tidyverse.org/reference/read_delim.html) of [**readr**](https://readr.tidyverse.org/) and save them as tibble dataframes.
+
+```{r echo=FALSE, eval=FALSE}
+city_edges <- read_csv("data/SocialNetwork.csv")
+
+city_nodes <- read_csv("data/Participants.csv")
+```
+
+```{r echo=FALSE, eval=TRUE}
+city_nodes <- read_csv("data/Participants.csv")
+```
+
+```{r echo=FALSE, eval=FALSE}
+glimpse(city_edges)
+```
+# Data Wrangling
+
+## Transforming the Edges data
+
+The following steps were done to wrangle the data,
+
+* Converted
+
+
+mutate timestamp, filter for selected months, add weekday/ends attribute,
+group by
+aggregate data to tidygraph
+
+49
+
+```{r echo=TRUE, eval= FALSE}
+city_edges_agg_all <- city_edges %>%
+  mutate(Yr_Mth = format(as.Date(timestamp), "%Y-%m")) %>% 
+  mutate(Day = wday(timestamp,
+                    label = TRUE,
+                    abbr = FALSE)) %>% 
+  group_by(participantIdFrom, participantIdTo, Day) %>% 
+  summarise(Weight = n(), 
+            .groups = "keep") %>%
+  filter(participantIdFrom != participantIdTo)%>%
+  filter(Weight > 0) %>%
+  ungroup()
+```
+
+Max weight was 65
+
+
+```{r eval=F, echo=F}
+summary(city_edges_agg_all$Weight)
+```
+
+```{r echo=TRUE, eval= FALSE}
+city_edges_agg_all <- city_edges %>%
+  mutate(Yr_Mth = format(as.Date(timestamp), "%Y-%m")) %>% 
+  mutate(Day = wday(timestamp,
+                    label = TRUE,
+                    abbr = FALSE)) %>% 
+  group_by(participantIdFrom, participantIdTo, Day) %>% 
+  summarise(Weight = n(), .groups = "keep") %>%
+  filter(participantIdFrom != participantIdTo)%>%
+  filter(Weight > 49) %>%
+  ungroup()
+```
+
+## Exporting the large SocialNetwork.csv into RDS format
+
+As the *SocialNetwork.csv* was pretty big in size at around 200 MB, it is not possible for us to upload this to Github.
+
+Hence, we will be exporting the cleaned and filtered dataset (done in previous step) instead and used that as our reference import file for the subsequent analysis.
+
+The code below will write (export) the file into a RDS format (native to R) to keep the file's size small and manageable.
+
+```{r echo=TRUE, eval= FALSE}
+write_rds(city_edges_agg_all, "data/rds/city_edges_agg_all.rds")
+```
+
+The exported RDS files will be imported again (as the original *SocialNetwork.csv* will not be imported and stored in this R project/GitHub)
+
+```{r echo=TRUE, eval= TRUE}
+city_edges_agg_all <- read_rds("data/rds/city_edges_agg_all.rds")
+```
+
+
+
+
+```{r}
+nodes_involved_all <- city_edges_agg_all %>% 
+  select(participantIdFrom, participantIdTo) %>% 
+  stack() %>%
+  mutate(participantId = (values)) %>% 
+  select(participantId) %>% 
+  arrange(participantId) %>%
+  unique()
+```
+
+
+```{r}
+participants_nodes_all <- merge(x=city_nodes,y=nodes_involved_all,by="participantId") %>% 
+  mutate(participantId = as.character(participantId)) %>% 
+  rename(`Education Level` = educationLevel,
+         `Interest Group` = interestGroup,
+         `Have Kids` = haveKids,
+         `Household Size` = householdSize,
+         `Joviality` = joviality,
+         `Age` = age)
+```
+
+```{r}
+network_graph_all <- graph_from_data_frame(city_edges_agg_all,
+                                       vertices = participants_nodes_all) %>% 
+  as_tbl_graph()
+
+network_graph_all
+```
+
+```{r}
+network_graph_all %>%
+  activate(edges) %>%
+  arrange(desc(Weight))
+```
+
+The simplest measure of centrality is degree centrality. It counts how many edges each node has - the most degree central actor is the one with the most ties.
+
+```{r centrality_degree, fig.height= 10, fig.width = 15}
+g1 <- ggraph(network_graph_all,
+       layout = "linear", 
+       circular = TRUE) +
+  geom_edge_arc(aes(width = Weight),
+                 alpha = 0.1) +
+  scale_edge_width(range = c(0.1, 2)) +
+  geom_node_point(aes(colour = `Education Level`, 
+                      size = centrality_degree())) +
+  labs(title = "Network Graph by Education Level") +
+  theme_graph(base_family = 'Helvetica')
+  
+g1 + geom_node_label(aes(label=ifelse(centrality_degree() > 60, name, NA)),
+                     nudge_x = g1$data$x * .15, 
+                     nudge_y = g1$data$y * .15,
+                     repel = TRUE, 
+                     point.padding = NA, 
+                     box.padding = 0, 
+                     force = 0.1)
+```
+
+
+Betweenness centrality captures which nodes are important in the flow of the network. It makes use of the shortest paths in the network. A path is a series of adjacent nodes. For any two nodes we can find the shortest path between them, that is, the path with the least amount of total steps (or edges). If a node C is on a shortest path between A and B, then it means C is important to the efficient flow of goods between A and B. Without C, flows would have to take a longer route to get from A to B.
+
+Thus, betweenness effectively counts how many shortest paths each node is on. The higher a node’s betweenness, the more important they are for the efficient flow of goods in a network.
+
+
+                     
+```{r centrality_betweenness, fig.height= 10, fig.width = 15}
+g2 <- ggraph(network_graph_all,
+       layout = "linear", 
+       circular = TRUE) +
+  geom_edge_arc(aes(width = Weight),
+                 alpha = 0.1) +
+  scale_edge_width(range = c(0.1, 2)) +
+  geom_node_point(aes(colour = `Education Level`, 
+                      size = centrality_betweenness())) +
+  labs(title = "Network Graph by Education Level") +
+  theme_graph(base_family = 'Helvetica') +
+  geom_node_label(aes(label=ifelse(centrality_betweenness() > 800, name, NA)),
+                     nudge_x = g1$data$x * .15, 
+                     nudge_y = g1$data$y * .15,
+                     repel = TRUE, 
+                     point.padding = NA, 
+                     box.padding = 0, 
+                     force = 0.1)
+g2
+```
+
+Degree centrality only takes into account the number of edges for each node, but it leaves out information about ego’s alters.
+
+However, we might think that power comes from being tied to powerful people. If A and B have the same degree centrality, but A is tied to all high degree people and B is tied to all low degree people, then intuitively we want to see A with a higher score than B.
+
+Eigenvector centrality takes into account alters’ power. It is calculated a little bit differently in igraph. It produces a list object and we need to extract only the vector of centrality values.
+
+```{r centrality_eigen, fig.height= 10, fig.width = 15}
+g3 <- ggraph(network_graph_all,
+       layout = "linear", 
+       circular = TRUE) +
+  geom_edge_arc(aes(width = Weight),
+                 alpha = 0.1) +
+  scale_edge_width(range = c(0.1, 2)) +
+  geom_node_point(aes(colour = `Education Level`, 
+                      size = centrality_eigen())) +
+  labs(title = "Network Graph by Education Level") +
+  theme_graph(base_family = 'Helvetica') +
+  geom_node_label(aes(label=ifelse(centrality_eigen() > 0.8, name, NA)),
+                     nudge_x = g1$data$x * .15, 
+                     nudge_y = g1$data$y * .15,
+                     repel = TRUE, 
+                     point.padding = NA, 
+                     box.padding = 0, 
+                     force = 0.1)
+g3
+```
+
+
+
+
+With closeness centrality we again make use of the shortest paths between nodes. We measure the distance between two nodes as the length of the shortest path between them. Farness, for a given node, is the average distance from that node to all other nodes. Closeness is then the reciprocal of farness (1/farness).
+
+```{r centrality_closeness, fig.height= 10, fig.width = 15}
+g4 <- ggraph(network_graph_all,
+       layout = "linear", 
+       circular = TRUE) +
+  geom_edge_arc(aes(width = Weight),
+                 alpha = 0.1) +
+  scale_edge_width(range = c(0.1, 2)) +
+  geom_node_point(aes(colour = `Education Level`, 
+                      size = centrality_closeness())) +
+  labs(title = "Network Graph by Education Level") +
+  theme_graph(base_family = 'Helvetica') +
+  geom_node_label(aes(label=ifelse(centrality_closeness() > 0.99, name, NA)),
+                     nudge_x = g1$data$x * .15, 
+                     nudge_y = g1$data$y * .15,
+                     repel = TRUE, 
+                     point.padding = NA, 
+                     box.padding = 0, 
+                     force = 0.1)
+g4
+```
+
+```{r fig.height= 10, fig.width = 15}
+set.seed(1234)
+g2a <- ggraph(network_graph_all,
+              layout = "nicely") +
+  geom_edge_link(aes(width = Weight),
+                 alpha = 0.1,
+                 color = 'blue') +
+  scale_edge_width(range = c(0.1, 2)) +
+  geom_node_point(aes(colour = `Education Level`, 
+                      size = centrality_betweenness())) +
+  labs(title = "Network Graph by Education Level") +
+  theme_graph(base_family = 'Helvetica') +
+  geom_node_label(aes(label=ifelse(centrality_betweenness() > 400, name, NA)),
+                     nudge_x = g1$data$x * .15, 
+                     nudge_y = g1$data$y * .15,
+                     repel = TRUE, 
+                     point.padding = NA, 
+                     box.padding = 0, 
+                     force = 0.1)
+
+g2a
+```
+
+```{r echo=TRUE, eval= FALSE}
+city_edges_agg_all_v2 <- city_edges %>%
+  mutate(Yr_Mth = format(as.Date(timestamp), "%Y-%m")) %>%
+  mutate(Day = wday(timestamp,
+                    label = TRUE,
+                    abbr = FALSE)) %>% 
+  rename(from = participantIdFrom, 
+         to = participantIdTo) %>% 
+  group_by(from, to, Day) %>% 
+  summarise(Weight = n(), 
+            .groups = "keep") %>%
+  filter(from != to)%>%
+  filter(Weight > 49) %>%
+  ungroup()
+```
+
+## Exporting the large SocialNetwork.csv into RDS format
+
+As the *SocialNetwork.csv* was pretty big in size at around 200 MB, it is not possible for us to upload this to Github.
+
+Hence, we will be exporting the cleaned and filtered dataset (done in previous step) instead and used that as our reference import file for the subsequent analysis.
+
+The code below will write (export) the file into a RDS format (native to R) to keep the file's size small and manageable.
+
+```{r echo=TRUE, eval= FALSE}
+write_rds(city_edges_agg_all_v2, "data/rds/city_edges_agg_all_v2.rds")
+```
+
+The exported RDS files will be imported again (as the original *SocialNetwork.csv* will not be imported and stored in this R project/GitHub)
+
+```{r echo=TRUE, eval= TRUE}
+city_edges_agg_all_v2 <- read_rds("data/rds/city_edges_agg_all_v2.rds")
+```
+
+
+
+
+```{r echo=FALSE, eval= FALSE}
+summary(city_edges_agg_all_v2$Weight)
+```
+
+```{r}
+nodes_involved_all_v2 <- city_edges_agg_all_v2 %>% 
+  select(from, to) %>% 
+  stack() %>%
+  mutate(participantId = (values)) %>% 
+  select(participantId) %>% 
+  arrange(participantId) %>%
+  unique()
+```
+
+
+```{r}
+participants_nodes_all_v2 <- merge(x=city_nodes,y=nodes_involved_all_v2,by="participantId") %>% 
+  mutate(participantId = as.character(participantId)) %>%
+  rename(id = participantId,
+         group = educationLevel,
+         `Interest Group` = interestGroup,
+         `Have Kids` = haveKids,
+         `Household Size` = householdSize,
+         `Joviality` = joviality,
+         `Age` = age)
+```
+
+
+```{r fig.height= 10, fig.width = 15}
+visNetwork(participants_nodes_all_v2,
+           city_edges_agg_all_v2) %>%
+  visIgraphLayout(layout = "layout_nicely") %>%
+  visEdges(arrows = "to",
+           smooth = list(enabled = TRUE,
+                         type = "curvedCW")) %>% 
+  visOptions(highlightNearest = TRUE,
+             nodesIdSelection = list(enabled = TRUE, 
+             style = 'width: 150px; 
+             height: 26px;
+             background: #f8f8f8;
+             color: darkblue;
+             border:none;
+             outline:none;'),
+             selectedBy = list(variable = "group",
+             style = 'width: 150px; 
+             height: 26px;
+             background: #f8f8f8;
+             color: darkblue;
+             border:none;
+             outline:none;')) %>%
+  visLegend(main = "Education Level Legend",
+            position = "right") %>%
+  visEdges(arrows = "to", 
+           color = list(highlight="black")) %>% 
+  visLayout(randomSeed = 123)
+```
+
+```{r}
+participants_nodes_all_v3 <- merge(x=city_nodes,y=nodes_involved_all_v2,by="participantId") %>% 
+  mutate(participantId = as.character(participantId)) %>%
+  rename(id = participantId,
+         group = interestGroup,
+         `Education Level` = educationLevel,
+         `Have Kids` = haveKids,
+         `Household Size` = householdSize,
+         `Joviality` = joviality,
+         `Age` = age)
+```
+
+
+
+```{r fig.height= 10, fig.width = 15}
+visNetwork(participants_nodes_all_v3,
+           city_edges_agg_all_v2) %>%
+  visIgraphLayout(layout = "layout_nicely") %>%
+  visEdges(arrows = "to",
+           smooth = list(enabled = TRUE,
+                         type = "curvedCW")) %>% 
+  visOptions(highlightNearest = TRUE,
+             nodesIdSelection = list(enabled = TRUE, 
+             style = 'width: 150px; 
+             height: 26px;
+             background: #f8f8f8;
+             color: darkblue;
+             border:none;
+             outline:none;'),
+             selectedBy = list(variable = "group",
+             style = 'width: 150px; 
+             height: 26px;
+             background: #f8f8f8;
+             color: darkblue;
+             border:none;
+             outline:none;')) %>%
+  visLegend(main = "Interest Group Legend",
+            position = "right") %>%
+  visEdges(arrows = "to",
+           color = list(highlight="black")) %>% 
+  visLayout(randomSeed = 123)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
